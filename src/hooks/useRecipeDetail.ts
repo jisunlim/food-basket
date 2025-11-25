@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as SQLite from 'expo-sqlite';
 import { RecipeDetail } from '../types';
 import { getRecipeById } from '../database/operations';
@@ -15,15 +15,16 @@ export const useRecipeDetail = (recipeId: number) => {
         const database = await SQLite.openDatabaseAsync('foodbasket.db');
         setDb(database);
       } catch (err) {
-        setError('데이터베이스 연결 실패');
-        console.error(err);
+        const errorMessage = err instanceof Error ? err.message : '데이터베이스 연결 실패';
+        setError(errorMessage);
+        console.error('DB 연결 실패:', err);
       }
     };
 
     initDb();
   }, []);
 
-  const loadRecipe = async () => {
+  const loadRecipe = useCallback(async () => {
     if (!db) return;
 
     try {
@@ -36,22 +37,27 @@ export const useRecipeDetail = (recipeId: number) => {
         setError('요리를 찾을 수 없습니다');
       }
     } catch (err) {
-      setError('요리 정보를 불러오는데 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '요리 정보를 불러오는데 실패했습니다';
+      setError(errorMessage);
+      console.error('요리 정보 로드 실패:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [db, recipeId]);
 
   useEffect(() => {
     loadRecipe();
-  }, [db, recipeId]);
+  }, [loadRecipe]);
+
+  const refresh = useCallback(() => {
+    loadRecipe();
+  }, [loadRecipe]);
 
   return {
     recipe,
     loading,
     error,
-    refresh: loadRecipe,
+    refresh,
   };
 };
 

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as SQLite from 'expo-sqlite';
-import { Ingredient } from '../types';
+import { Ingredient, IngredientCategory } from '../types';
 import { getIngredients, createIngredient } from '../database/operations';
 
 export const useIngredients = () => {
@@ -23,7 +23,7 @@ export const useIngredients = () => {
     initDb();
   }, []);
 
-  const loadIngredients = async () => {
+  const loadIngredients = useCallback(async () => {
     if (!db) return;
 
     try {
@@ -32,16 +32,17 @@ export const useIngredients = () => {
       const data = await getIngredients(db);
       setIngredients(data);
     } catch (err) {
-      setError('재료 목록을 불러오는데 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '재료 목록을 불러오는데 실패했습니다';
+      setError(errorMessage);
+      console.error('재료 목록 로드 실패:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [db]);
 
   useEffect(() => {
     loadIngredients();
-  }, [db]);
+  }, [loadIngredients]);
 
   const addIngredient = async (name: string, unit: string) => {
     if (!db) return null;
@@ -51,8 +52,9 @@ export const useIngredients = () => {
       await loadIngredients();
       return id;
     } catch (err) {
-      setError('재료 추가에 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '재료 추가에 실패했습니다';
+      setError(errorMessage);
+      console.error('재료 추가 실패:', err);
       return null;
     }
   };

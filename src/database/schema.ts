@@ -4,15 +4,20 @@ import * as SQLite from 'expo-sqlite';
 export const initializeDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
   const db = await SQLite.openDatabaseAsync('foodbasket.db');
 
-  // 개발 중: 스키마 변경을 위해 기존 테이블 삭제
-  // 프로덕션에서는 마이그레이션 사용 필요
-  await db.execAsync(`
-    DROP TABLE IF EXISTS cart_items;
-    DROP TABLE IF EXISTS recipe_tags;
-    DROP TABLE IF EXISTS recipe_ingredients;
-    DROP TABLE IF EXISTS ingredients;
-    DROP TABLE IF EXISTS recipes;
-  `);
+  // 개발 모드에서만 테이블 재생성 (환경 변수로 제어)
+  // 프로덕션에서는 이 부분이 실행되지 않아야 함
+  const isDevelopment = __DEV__;
+  
+  if (isDevelopment) {
+    // 개발 중에만 테이블 DROP
+    await db.execAsync(`
+      DROP TABLE IF EXISTS cart_items;
+      DROP TABLE IF EXISTS recipe_tags;
+      DROP TABLE IF EXISTS recipe_ingredients;
+      DROP TABLE IF EXISTS ingredients;
+      DROP TABLE IF EXISTS recipes;
+    `);
+  }
 
   // 요리 테이블
   await db.execAsync(`

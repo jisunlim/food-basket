@@ -75,7 +75,7 @@ export interface CartItem {
 }
 
 // 요리 상세 정보 (재료 및 태그 포함)
-export interface RecipeDetail extends Recipe {
+export interface RecipeDetail extends Omit<Recipe, 'ingredients' | 'tags'> {
   ingredients: RecipeIngredient[];
   tags: RecipeTag[];
 }

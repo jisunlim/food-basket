@@ -24,7 +24,7 @@ export const RecommendationScreen: React.FC = () => {
     if (isFocused) {
       refresh();
     }
-  }, [isFocused]);
+  }, [isFocused, refresh]);
 
   // 장바구니 재료 ID 목록 가져오기
   useEffect(() => {

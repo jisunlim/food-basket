@@ -11,43 +11,18 @@ export const formatCartAsText = (cartItems: CartItemGroup[]): string => {
 
   let text = '[장보기 목록]\n\n';
 
-  // 카테고리별로 그룹화
-  const categoryMap = new Map<IngredientCategory, CartItemGroup[]>();
-  
-  cartItems.forEach((item) => {
-    const category = item.ingredient.category || 'others';
-    if (!categoryMap.has(category)) {
-      categoryMap.set(category, []);
-    }
-    categoryMap.get(category)!.push(item);
-  });
-
-  // 카테고리 순서대로 출력
-  const categoryOrder: IngredientCategory[] = [
-    'meat',
-    'seafood',
-    'vegetables',
-    'fruits',
-    'dairy',
-    'grains',
-    'sauces',
-    'seasonings',
-    'processed',
-    'others',
-  ];
-
-  categoryOrder.forEach((category) => {
-    const items = categoryMap.get(category);
-    if (items && items.length > 0) {
-      text += `【${INGREDIENT_CATEGORIES[category]}】\n`;
-      
-      items.forEach((group) => {
-        const { ingredient, totalAmount } = group;
-        text += `• ${ingredient.name} ${totalAmount}${ingredient.unit}\n`;
-      });
-      
-      text += '\n';
-    }
+  // CartItemGroup은 이미 카테고리별로 그룹화되어 있음
+  cartItems.forEach((group) => {
+    const categoryKey = group.category as IngredientCategory;
+    const categoryName = INGREDIENT_CATEGORIES[categoryKey] || group.category;
+    
+    text += `【${categoryName}】\n`;
+    
+    group.data.forEach((item) => {
+      text += `• ${item.ingredient.name} ${item.totalAmount.toFixed(1)}${item.ingredient.unit}\n`;
+    });
+    
+    text += '\n';
   });
 
   return text.trim();

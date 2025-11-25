@@ -66,9 +66,14 @@ export const RecipeFormScreen: React.FC<Props> = ({ route }) => {
       return;
     }
 
+    if (name.trim().length > 100) {
+      Alert.alert('오류', '요리 이름은 100자 이내로 입력해주세요');
+      return;
+    }
+
     const servingsNum = parseInt(servings);
-    if (isNaN(servingsNum) || servingsNum <= 0) {
-      Alert.alert('오류', '올바른 인분을 입력해주세요');
+    if (isNaN(servingsNum) || servingsNum <= 0 || servingsNum > 100) {
+      Alert.alert('오류', '인분은 1~100 사이로 입력해주세요');
       return;
     }
 
@@ -80,6 +85,13 @@ export const RecipeFormScreen: React.FC<Props> = ({ route }) => {
     const hasRequired = ingredients.some((i) => i.isRequired);
     if (!hasRequired) {
       Alert.alert('오류', '최소 1개 이상의 필수 재료가 필요합니다');
+      return;
+    }
+
+    // 재료 양 유효성 검사
+    const invalidIngredient = ingredients.find((i) => i.amount <= 0 || i.amount > 100000);
+    if (invalidIngredient) {
+      Alert.alert('오류', '재료의 양은 0보다 크고 100000 이하여야 합니다');
       return;
     }
 

@@ -6,16 +6,29 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { colors } from '../constants';
-import { CartItemGroup } from '../types';
+import { Recipe, Ingredient } from '../types';
 
 interface Props {
-  group: CartItemGroup;
+  ingredient: Ingredient;
+  totalAmount: number;
+  recipes: {
+    recipe: Recipe;
+    amount: number;
+    servings: number;
+    isRequired: boolean;
+  }[];
   onRemoveRecipe: (recipeId: number) => void;
+  onUpdateServings: (recipeId: number, newServings: number) => void;
 }
 
-export const CartItemCard: React.FC<Props> = ({ group, onRemoveRecipe }) => {
+export const CartItemCard: React.FC<Props> = ({ 
+  ingredient, 
+  totalAmount, 
+  recipes,
+  onRemoveRecipe,
+  onUpdateServings
+}) => {
   const [expanded, setExpanded] = useState(false);
-  const { ingredient, totalAmount, recipes } = group;
 
   return (
     <View style={styles.card}>

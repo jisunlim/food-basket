@@ -15,7 +15,7 @@ type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 interface Props {
   recommendation: RecipeRecommendation;
-  cartIngredientIds: string[];
+  cartIngredientIds: number[];
 }
 
 export const RecommendationCard: React.FC<Props> = ({
@@ -33,7 +33,7 @@ export const RecommendationCard: React.FC<Props> = ({
   const requiredIngredients = recipe.ingredients.filter((i) => i.isRequired);
   const optionalIngredients = recipe.ingredients.filter((i) => !i.isRequired);
 
-  const hasIngredient = (ingredientId: string) => {
+  const hasIngredient = (ingredientId: number) => {
     return cartIngredientIds.includes(ingredientId);
   };
 

@@ -93,7 +93,7 @@ export const RecipeListScreen: React.FC = () => {
 
       <FlatList
         data={filteredRecipes}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <RecipeCard
             recipe={item}

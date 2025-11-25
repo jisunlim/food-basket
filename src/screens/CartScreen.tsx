@@ -25,7 +25,7 @@ export const CartScreen: React.FC = () => {
     if (isFocused) {
       refresh();
     }
-  }, [isFocused]);
+  }, [isFocused, refresh]);
 
   const handleClearCart = () => {
     Alert.alert(

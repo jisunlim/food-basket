@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as SQLite from 'expo-sqlite';
 import { Recipe } from '../types';
 import { getRecipes, deleteRecipe, updateRecipe } from '../database/operations';
@@ -19,15 +19,16 @@ export const useRecipes = (filters?: {
         const database = await SQLite.openDatabaseAsync('foodbasket.db');
         setDb(database);
       } catch (err) {
-        setError('데이터베이스 연결 실패');
-        console.error(err);
+        const errorMessage = err instanceof Error ? err.message : '데이터베이스 연결 실패';
+        setError(errorMessage);
+        console.error('DB 연결 실패:', err);
       }
     };
 
     initDb();
   }, []);
 
-  const loadRecipes = async () => {
+  const loadRecipes = useCallback(async () => {
     if (!db) return;
 
     try {
@@ -36,16 +37,17 @@ export const useRecipes = (filters?: {
       const data = await getRecipes(db, filters);
       setRecipes(data);
     } catch (err) {
-      setError('요리 목록을 불러오는데 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '요리 목록을 불러오는데 실패했습니다';
+      setError(errorMessage);
+      console.error('요리 목록 로드 실패:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [db, filters?.tag, filters?.ingredientId, filters?.isFavorite]);
 
   useEffect(() => {
     loadRecipes();
-  }, [db, filters?.tag, filters?.ingredientId, filters?.isFavorite]);
+  }, [loadRecipes]);
 
   const toggleFavorite = async (recipeId: number, currentFavorite: boolean) => {
     if (!db) return;
@@ -54,8 +56,9 @@ export const useRecipes = (filters?: {
       await updateRecipe(db, recipeId, { isFavorite: !currentFavorite });
       await loadRecipes();
     } catch (err) {
-      setError('즐겨찾기 변경에 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '즐겨찾기 변경에 실패했습니다';
+      setError(errorMessage);
+      console.error('즐겨찾기 변경 실패:', err);
     }
   };
 
@@ -66,14 +69,15 @@ export const useRecipes = (filters?: {
       await deleteRecipe(db, recipeId);
       await loadRecipes();
     } catch (err) {
-      setError('요리 삭제에 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '요리 삭제에 실패했습니다';
+      setError(errorMessage);
+      console.error('요리 삭제 실패:', err);
     }
   };
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     loadRecipes();
-  };
+  }, [loadRecipes]);
 
   return {
     recipes,

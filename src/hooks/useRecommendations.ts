@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as SQLite from 'expo-sqlite';
 import { RecipeRecommendation } from '../types';
 import { getRecommendations } from '../database/operations';
@@ -15,15 +15,16 @@ export const useRecommendations = () => {
         const database = await SQLite.openDatabaseAsync('foodbasket.db');
         setDb(database);
       } catch (err) {
-        setError('데이터베이스 연결 실패');
-        console.error(err);
+        const errorMessage = err instanceof Error ? err.message : '데이터베이스 연결 실패';
+        setError(errorMessage);
+        console.error('DB 연결 실패:', err);
       }
     };
 
     initDb();
   }, []);
 
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     if (!db) return;
 
     try {
@@ -32,20 +33,21 @@ export const useRecommendations = () => {
       const data = await getRecommendations(db);
       setRecommendations(data);
     } catch (err) {
-      setError('추천 요리를 불러오는데 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '추천 요리를 불러오는데 실패했습니다';
+      setError(errorMessage);
+      console.error('추천 요리 로드 실패:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [db]);
 
   useEffect(() => {
     loadRecommendations();
-  }, [db]);
+  }, [loadRecommendations]);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     loadRecommendations();
-  };
+  }, [loadRecommendations]);
 
   return {
     recommendations,

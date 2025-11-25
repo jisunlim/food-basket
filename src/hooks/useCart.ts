@@ -32,8 +32,9 @@ export const useCart = () => {
       const data = await getCartItemsGrouped(db);
       setCartItems(data);
     } catch (err) {
-      setError('장바구니를 불러오는데 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '장바구니를 불러오는데 실패했습니다';
+      setError(errorMessage);
+      console.error('장바구니 로드 실패:', err);
     } finally {
       setLoading(false);
     }
@@ -52,8 +53,9 @@ export const useCart = () => {
       await loadCart();
       return true;
     } catch (err) {
-      setError('장바구니에 추가하는데 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '장바구니에 추가하는데 실패했습니다';
+      setError(errorMessage);
+      console.error('장바구니 추가 실패:', err);
       return false;
     } finally {
       setLoading(false);
@@ -67,8 +69,9 @@ export const useCart = () => {
       await clearCart(db);
       await loadCart();
     } catch (err) {
-      setError('장바구니 비우기에 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '장바구니 비우기에 실패했습니다';
+      setError(errorMessage);
+      console.error('장바구니 비우기 실패:', err);
     }
   };
 
@@ -79,8 +82,9 @@ export const useCart = () => {
       await removeCartItemsByRecipe(db, recipeId);
       await loadCart();
     } catch (err) {
-      setError('항목 삭제에 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '항목 삭제에 실패했습니다';
+      setError(errorMessage);
+      console.error('항목 삭제 실패:', err);
     }
   };
 
@@ -93,8 +97,9 @@ export const useCart = () => {
       await addToCart(db, recipeId, newServings);
       await loadCart();
     } catch (err) {
-      setError('인분 변경에 실패했습니다');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : '인분 변경에 실패했습니다';
+      setError(errorMessage);
+      console.error('인분 변경 실패:', err);
     }
   };
 

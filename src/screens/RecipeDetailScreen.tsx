@@ -150,7 +150,7 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
             value={selectedServings}
             onChange={setSelectedServings}
             min={1}
-            max={20}
+            max={100}
           />
         </View>
 

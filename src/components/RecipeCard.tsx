@@ -39,7 +39,7 @@ export const RecipeCard: React.FC<Props> = ({
   };
 
   const handleServingsChange = (delta: number) => {
-    const newServings = Math.max(1, Math.min(20, servings + delta));
+    const newServings = Math.max(1, Math.min(100, servings + delta));
     setServings(newServings);
   };
 

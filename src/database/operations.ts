@@ -46,7 +46,7 @@ export const getRecipes = async (
   for (const recipe of recipes) {
     // 재료 조회
     const ingredientRows = await db.getAllAsync<any>(
-      `SELECT ri.ingredient_id as id, i.name, i.unit
+      `SELECT ri.ingredient_id as id, i.name, i.unit, i.category
        FROM recipe_ingredients ri 
        JOIN ingredients i ON ri.ingredient_id = i.id 
        WHERE ri.recipe_id = ?`,
@@ -57,6 +57,7 @@ export const getRecipes = async (
       id: row.id,
       name: row.name,
       unit: row.unit,
+      category: row.category || 'others',
     }));
 
     // 태그 조회
@@ -86,7 +87,7 @@ export const getRecipeById = async (
 
   // 재료 조회
   const ingredientRows = await db.getAllAsync<any>(
-    `SELECT ri.*, i.name, i.unit 
+    `SELECT ri.*, i.name, i.unit, i.category 
      FROM recipe_ingredients ri 
      JOIN ingredients i ON ri.ingredient_id = i.id 
      WHERE ri.recipe_id = ?`,
@@ -103,6 +104,7 @@ export const getRecipeById = async (
       id: row.ingredient_id,
       name: row.name,
       unit: row.unit,
+      category: row.category || 'others',
     },
   }));
 
