@@ -398,8 +398,8 @@ export const getRecommendations = async (
       (i) => !cartIngredientIds.includes(i.ingredientId)
     );
 
-    // 필수 재료가 최대 2개까지만 부족한 경우
-    if (missingRequired.length <= 2) {
+    // 필수 재료가 최대 1개까지만 부족한 경우
+    if (missingRequired.length <= 1) {
       const matchingCount = detail.ingredients.filter((i) =>
         cartIngredientIds.includes(i.ingredientId)
       ).length;

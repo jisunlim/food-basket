@@ -5,4 +5,5 @@ export { TagInput } from './TagInput';
 export { SearchBar } from './SearchBar';
 export { IngredientFilter } from './IngredientFilter';
 export { TagFilter } from './TagFilter';
+export { RecommendationCard } from './RecommendationCard';
 
