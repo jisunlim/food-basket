@@ -78,11 +78,20 @@ export const RecipeListScreen: React.FC = () => {
     return recipeIds;
   }, [cartItems]);
 
-  // 검색어로 필터링된 레시피 (장바구니에 담긴 것 제외)
+  // 추천 레시피 ID 목록
+  const recommendationRecipeIds = useMemo(() => {
+    return new Set(recommendations.map(rec => rec.recipe.id));
+  }, [recommendations]);
+
+  // 검색어로 필터링된 레시피 (장바구니에 담긴 것 + 추천 대상 제외)
   const filteredRecipes = useMemo(() => {
     return recipes.filter((recipe) => {
       // 장바구니에 이미 담긴 레시피 제외
       if (cartRecipeIds.has(recipe.id)) {
+        return false;
+      }
+      // 추천 대상인 레시피 제외 (추천 카드로만 표시)
+      if (recommendationRecipeIds.has(recipe.id)) {
         return false;
       }
       if (searchQuery && !recipe.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -90,35 +99,35 @@ export const RecipeListScreen: React.FC = () => {
       }
       return true;
     });
-  }, [recipes, searchQuery, cartRecipeIds]);
+  }, [recipes, searchQuery, cartRecipeIds, recommendationRecipeIds]);
 
-  // 리스트 병합 (일반 2개 -> 추천 1개 패턴)
+  // 리스트 병합 (가나다순 정렬)
   const mergedList = useMemo<ListItem[]>(() => {
     if (filterType === 'recommendation') {
-      return recommendations.map((rec) => ({ type: 'recommendation', data: rec }));
+      // 추천 목록: 가나다순 정렬
+      return recommendations
+        .sort((a, b) => a.recipe.name.localeCompare(b.recipe.name, 'ko'))
+        .map((rec) => ({ type: 'recommendation', data: rec }));
     }
 
     if (filterType === 'favorite') {
-      return filteredRecipes.map((recipe) => ({ type: 'recipe', data: recipe }));
+      // 즐겨찾기: 가나다순 정렬
+      return filteredRecipes
+        .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+        .map((recipe) => ({ type: 'recipe', data: recipe }));
     }
 
-    // 전체보기: 일반 2개 -> 추천 1개 패턴
-    const result: ListItem[] = [];
-    let recipeIndex = 0;
-    let recommendIndex = 0;
+    // 전체보기: 일반 레시피 + 추천 레시피를 모두 합쳐서 가나다순 정렬
+    const allItems: ListItem[] = [
+      ...filteredRecipes.map((recipe) => ({ type: 'recipe' as const, data: recipe })),
+      ...recommendations.map((rec) => ({ type: 'recommendation' as const, data: rec })),
+    ];
 
-    while (recipeIndex < filteredRecipes.length || recommendIndex < recommendations.length) {
-      // 일반 레시피 2개 추가
-      for (let i = 0; i < 2 && recipeIndex < filteredRecipes.length; i++) {
-        result.push({ type: 'recipe', data: filteredRecipes[recipeIndex++] });
-      }
-      // 추천 레시피 1개 추가
-      if (recommendIndex < recommendations.length) {
-        result.push({ type: 'recommendation', data: recommendations[recommendIndex++] });
-      }
-    }
-
-    return result;
+    return allItems.sort((a, b) => {
+      const nameA = a.type === 'recipe' ? a.data.name : a.data.recipe.name;
+      const nameB = b.type === 'recipe' ? b.data.name : b.data.recipe.name;
+      return nameA.localeCompare(nameB, 'ko');
+    });
   }, [filteredRecipes, recommendations, filterType]);
 
   // 장바구니 요약 계산
