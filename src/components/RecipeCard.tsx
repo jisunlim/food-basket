@@ -16,8 +16,8 @@ type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 interface Props {
   recipe: Recipe;
-  onToggleFavorite: (recipeId: string, currentFavorite: boolean) => void;
-  onDelete: (recipeId: string) => void;
+  onToggleFavorite: (recipeId: number, currentFavorite: boolean) => void;
+  onDelete: (recipeId: number) => void;
 }
 
 export const RecipeCard: React.FC<Props> = ({

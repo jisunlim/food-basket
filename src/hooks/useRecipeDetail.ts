@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import { RecipeDetail } from '../types';
 import { getRecipeById } from '../database/operations';
 
-export const useRecipeDetail = (recipeId: string) => {
+export const useRecipeDetail = (recipeId: number) => {
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

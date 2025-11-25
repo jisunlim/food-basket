@@ -1,6 +1,6 @@
 // 요리 타입
 export interface Recipe {
-  id: string;
+  id: number;
   name: string;
   servings: number; // 기본 인분
   isFavorite: boolean;
@@ -39,7 +39,7 @@ export const INGREDIENT_CATEGORIES: Record<IngredientCategory, string> = {
 
 // 식재료 타입
 export interface Ingredient {
-  id: string;
+  id: number;
   name: string;
   unit: string; // 단위 (g, ml, 개 등)
   category: IngredientCategory;
@@ -47,9 +47,9 @@ export interface Ingredient {
 
 // 요리-재료 연결 타입
 export interface RecipeIngredient {
-  id: string;
-  recipeId: string;
-  ingredientId: string;
+  id: number;
+  recipeId: number;
+  ingredientId: number;
   amount: number; // 재료 양
   isRequired: boolean; // 필수/선택 여부
   ingredient?: Ingredient; // 조인 시 사용
@@ -57,16 +57,16 @@ export interface RecipeIngredient {
 
 // 태그 타입
 export interface RecipeTag {
-  id: string;
-  recipeId: string;
+  id: number;
+  recipeId: number;
   tag: string;
 }
 
 // 장바구니 아이템 타입
 export interface CartItem {
-  id: string;
-  recipeId: string;
-  ingredientId: string;
+  id: number;
+  recipeId: number;
+  ingredientId: number;
   amount: number;
   servings: number; // 몇 인분인지
   addedAt: Date;

@@ -10,10 +10,7 @@ import {
   RecipeRecommendation,
 } from '../types';
 
-// UUID 생성 함수
-const generateId = (): string => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-};
+// ID는 AUTOINCREMENT로 자동 생성됨
 
 // ===== 요리 관련 함수 =====
 
@@ -76,7 +73,7 @@ export const getRecipes = async (
 
 export const getRecipeById = async (
   db: SQLite.SQLiteDatabase,
-  id: string
+  id: number
 ): Promise<RecipeDetail | null> => {
   const recipeRow = await db.getFirstAsync<any>(
     'SELECT * FROM recipes WHERE id = ?',
@@ -134,25 +131,24 @@ export const createRecipe = async (
     name: string;
     servings: number;
     instructions?: string;
-    ingredients: { ingredientId: string; amount: number; isRequired: boolean }[];
+    ingredients: { ingredientId: number; amount: number; isRequired: boolean }[];
     tags: string[];
   }
-): Promise<string> => {
-  const id = generateId();
+): Promise<number> => {
   const now = new Date().toISOString();
 
-  await db.runAsync(
-    'INSERT INTO recipes (id, name, servings, is_favorite, instructions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [id, data.name, data.servings, 0, data.instructions || '', now, now]
+  const result = await db.runAsync(
+    'INSERT INTO recipes (name, servings, is_favorite, instructions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [data.name, data.servings, 0, data.instructions || '', now, now]
   );
+  
+  const id = result.lastInsertRowId;
 
   // 재료 추가
   for (const ingredient of data.ingredients) {
-    const riId = generateId();
     await db.runAsync(
-      'INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, amount, is_required) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount, is_required) VALUES (?, ?, ?, ?)',
       [
-        riId,
         id,
         ingredient.ingredientId,
         ingredient.amount,
@@ -163,10 +159,9 @@ export const createRecipe = async (
 
   // 태그 추가
   for (const tag of data.tags) {
-    const tagId = generateId();
     await db.runAsync(
-      'INSERT INTO recipe_tags (id, recipe_id, tag) VALUES (?, ?, ?)',
-      [tagId, id, tag]
+      'INSERT INTO recipe_tags (recipe_id, tag) VALUES (?, ?)',
+      [id, tag]
     );
   }
 
@@ -175,13 +170,13 @@ export const createRecipe = async (
 
 export const updateRecipe = async (
   db: SQLite.SQLiteDatabase,
-  id: string,
+  id: number,
   data: {
     name?: string;
     servings?: number;
     instructions?: string;
     isFavorite?: boolean;
-    ingredients?: { ingredientId: string; amount: number; isRequired: boolean }[];
+    ingredients?: { ingredientId: number; amount: number; isRequired: boolean }[];
     tags?: string[];
   }
 ): Promise<void> => {
@@ -221,11 +216,9 @@ export const updateRecipe = async (
   if (data.ingredients) {
     await db.runAsync('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [id]);
     for (const ingredient of data.ingredients) {
-      const riId = generateId();
       await db.runAsync(
-        'INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, amount, is_required) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount, is_required) VALUES (?, ?, ?, ?)',
         [
-          riId,
           id,
           ingredient.ingredientId,
           ingredient.amount,
@@ -239,10 +232,9 @@ export const updateRecipe = async (
   if (data.tags) {
     await db.runAsync('DELETE FROM recipe_tags WHERE recipe_id = ?', [id]);
     for (const tag of data.tags) {
-      const tagId = generateId();
       await db.runAsync(
-        'INSERT INTO recipe_tags (id, recipe_id, tag) VALUES (?, ?, ?)',
-        [tagId, id, tag]
+        'INSERT INTO recipe_tags (recipe_id, tag) VALUES (?, ?)',
+        [id, tag]
       );
     }
   }
@@ -250,7 +242,7 @@ export const updateRecipe = async (
 
 export const deleteRecipe = async (
   db: SQLite.SQLiteDatabase,
-  id: string
+  id: number
 ): Promise<void> => {
   await db.runAsync('DELETE FROM recipes WHERE id = ?', [id]);
 };
@@ -272,20 +264,19 @@ export const getIngredients = async (
 export const createIngredient = async (
   db: SQLite.SQLiteDatabase,
   data: { name: string; unit: string; category?: string }
-): Promise<string> => {
-  const id = generateId();
-  await db.runAsync(
-    'INSERT INTO ingredients (id, name, unit, category) VALUES (?, ?, ?, ?)',
-    [id, data.name, data.unit, data.category || 'others']
+): Promise<number> => {
+  const result = await db.runAsync(
+    'INSERT INTO ingredients (name, unit, category) VALUES (?, ?, ?)',
+    [data.name, data.unit, data.category || 'others']
   );
-  return id;
+  return result.lastInsertRowId;
 };
 
 // ===== 장바구니 관련 함수 =====
 
 export const addToCart = async (
   db: SQLite.SQLiteDatabase,
-  recipeId: string,
+  recipeId: number,
   servings: number
 ): Promise<void> => {
   const recipe = await getRecipeById(db, recipeId);
@@ -295,11 +286,9 @@ export const addToCart = async (
   const now = new Date().toISOString();
 
   for (const ingredient of recipe.ingredients) {
-    const id = generateId();
     await db.runAsync(
-      'INSERT INTO cart_items (id, recipe_id, ingredient_id, amount, servings, added_at) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO cart_items (recipe_id, ingredient_id, amount, servings, added_at) VALUES (?, ?, ?, ?, ?)',
       [
-        id,
         recipeId,
         ingredient.ingredientId,
         ingredient.amount * multiplier,
@@ -370,7 +359,7 @@ export const clearCart = async (db: SQLite.SQLiteDatabase): Promise<void> => {
 
 export const removeCartItemsByRecipe = async (
   db: SQLite.SQLiteDatabase,
-  recipeId: string
+  recipeId: number
 ): Promise<void> => {
   await db.runAsync('DELETE FROM cart_items WHERE recipe_id = ?', [recipeId]);
 };

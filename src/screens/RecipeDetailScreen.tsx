@@ -56,7 +56,7 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
   };
 
   const handleEdit = () => {
-    navigation.navigate('RecipeForm', { recipeId });
+    navigation.navigate('RecipeForm', { recipeId: recipeId.toString() });
   };
 
   if (loading) {

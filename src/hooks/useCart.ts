@@ -48,7 +48,7 @@ export const useCart = () => {
 
     try {
       setLoading(true);
-      await addToCart(db, recipeId.toString(), servings);
+      await addToCart(db, recipeId, servings);
       await loadCart();
       return true;
     } catch (err) {
@@ -72,7 +72,7 @@ export const useCart = () => {
     }
   };
 
-  const removeRecipeFromCart = async (recipeId: string) => {
+  const removeRecipeFromCart = async (recipeId: number) => {
     if (!db) return;
 
     try {

@@ -10,7 +10,7 @@ import { CartItemGroup } from '../types';
 
 interface Props {
   group: CartItemGroup;
-  onRemoveRecipe: (recipeId: string) => void;
+  onRemoveRecipe: (recipeId: number) => void;
 }
 
 export const CartItemCard: React.FC<Props> = ({ group, onRemoveRecipe }) => {

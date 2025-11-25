@@ -47,7 +47,7 @@ export const useRecipes = (filters?: {
     loadRecipes();
   }, [db, filters?.tag, filters?.ingredientId, filters?.isFavorite]);
 
-  const toggleFavorite = async (recipeId: string, currentFavorite: boolean) => {
+  const toggleFavorite = async (recipeId: number, currentFavorite: boolean) => {
     if (!db) return;
 
     try {
@@ -59,7 +59,7 @@ export const useRecipes = (filters?: {
     }
   };
 
-  const removeRecipe = async (recipeId: string) => {
+  const removeRecipe = async (recipeId: number) => {
     if (!db) return;
 
     try {

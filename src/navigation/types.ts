@@ -3,8 +3,8 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 // Stack Navigator 타입
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
-  RecipeDetail: { recipeId: number };
-  RecipeForm: { recipeId?: number }; // undefined면 새 요리 등록
+  RecipeDetail: { recipeId: string };
+  RecipeForm: { recipeId?: string }; // undefined면 새 요리 등록
 };
 
 // Bottom Tab Navigator 타입
