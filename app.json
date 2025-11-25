@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "food-basket-temp",
-    "slug": "food-basket-temp",
+    "name": "FoodBasket",
+    "slug": "food-basket",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,13 +13,15 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.morani.foodbasket"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.morani.foodbasket",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
