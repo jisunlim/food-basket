@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
-  FlatList,
+  SectionList,
   ScrollView,
 } from 'react-native';
 import { colors } from '../constants';
 import { useIngredients } from '../hooks/useIngredients';
 import { SearchBar } from './SearchBar';
+import { INGREDIENT_CATEGORIES, IngredientCategory } from '../types';
 
 interface Props {
   value: string[];
@@ -43,6 +44,46 @@ export const IngredientFilter: React.FC<Props> = ({ value, onChange }) => {
         i.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : ingredients;
+
+  // 카테고리별로 그룹화
+  const groupedIngredients = useMemo(() => {
+    const groups: { title: string; data: typeof ingredients }[] = [];
+    const categoryMap = new Map<IngredientCategory, typeof ingredients>();
+
+    filteredIngredients.forEach((ingredient) => {
+      const category = ingredient.category || 'others';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category)!.push(ingredient);
+    });
+
+    // 카테고리 순서대로 정렬
+    const categoryOrder: IngredientCategory[] = [
+      'meat',
+      'seafood',
+      'vegetables',
+      'fruits',
+      'dairy',
+      'grains',
+      'sauces',
+      'seasonings',
+      'processed',
+      'others',
+    ];
+
+    categoryOrder.forEach((category) => {
+      const items = categoryMap.get(category);
+      if (items && items.length > 0) {
+        groups.push({
+          title: INGREDIENT_CATEGORIES[category],
+          data: items,
+        });
+      }
+    });
+
+    return groups;
+  }, [filteredIngredients]);
 
   return (
     <View style={styles.container}>
@@ -106,8 +147,8 @@ export const IngredientFilter: React.FC<Props> = ({ value, onChange }) => {
               />
             </View>
 
-            <FlatList
-              data={filteredIngredients}
+            <SectionList
+              sections={groupedIngredients}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => {
                 const isSelected = value.includes(item.id);
@@ -136,9 +177,15 @@ export const IngredientFilter: React.FC<Props> = ({ value, onChange }) => {
                   </TouchableOpacity>
                 );
               }}
+              renderSectionHeader={({ section: { title } }) => (
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionHeaderText}>{title}</Text>
+                </View>
+              )}
               ListEmptyComponent={
                 <Text style={styles.emptyText}>재료가 없습니다</Text>
               }
+              stickySectionHeadersEnabled={true}
             />
 
             <View style={styles.modalFooter}>
@@ -310,6 +357,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  sectionHeader: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  sectionHeaderText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.primary,
   },
 });
 

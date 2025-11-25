@@ -11,11 +11,38 @@ export interface Recipe {
   tags?: string[]; // 목록 조회 시 포함
 }
 
+// 식재료 카테고리
+export type IngredientCategory =
+  | 'meat'
+  | 'seafood'
+  | 'vegetables'
+  | 'fruits'
+  | 'dairy'
+  | 'grains'
+  | 'sauces'
+  | 'seasonings'
+  | 'processed'
+  | 'others';
+
+export const INGREDIENT_CATEGORIES: Record<IngredientCategory, string> = {
+  meat: '육류',
+  seafood: '해산물',
+  vegetables: '채소',
+  fruits: '과일',
+  dairy: '유제품/계란',
+  grains: '곡물/면류',
+  sauces: '양념/소스',
+  seasonings: '조미료/향신료',
+  processed: '가공식품',
+  others: '기타',
+};
+
 // 식재료 타입
 export interface Ingredient {
   id: string;
   name: string;
   unit: string; // 단위 (g, ml, 개 등)
+  category: IngredientCategory;
 }
 
 // 요리-재료 연결 타입

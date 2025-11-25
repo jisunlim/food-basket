@@ -22,7 +22,8 @@ export const initializeDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
     CREATE TABLE IF NOT EXISTS ingredients (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
-      unit TEXT NOT NULL
+      unit TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'others'
     );
   `);
 
@@ -95,40 +96,40 @@ export const initializeDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
 export const seedDatabase = async (db: SQLite.SQLiteDatabase) => {
   // 샘플 식재료
   const sampleIngredients = [
-    { id: '1', name: '돼지고기', unit: 'g' },
-    { id: '2', name: '김치', unit: 'g' },
-    { id: '3', name: '두부', unit: '모' },
-    { id: '4', name: '파', unit: '뿌리' },
-    { id: '5', name: '양파', unit: '개' },
-    { id: '6', name: '간장', unit: 'ml' },
-    { id: '7', name: '설탕', unit: 'g' },
-    { id: '8', name: '참기름', unit: 'ml' },
-    { id: '9', name: '계란', unit: '개' },
-    { id: '10', name: '밥', unit: 'g' },
-    { id: '11', name: '당근', unit: '개' },
-    { id: '12', name: '소금', unit: 'g' },
-    { id: '13', name: '후추', unit: 'g' },
-    { id: '14', name: '마늘', unit: '쪽' },
-    { id: '15', name: '고추장', unit: 'g' },
-    { id: '16', name: '된장', unit: 'g' },
-    { id: '17', name: '감자', unit: '개' },
-    { id: '18', name: '애호박', unit: '개' },
-    { id: '19', name: '청양고추', unit: '개' },
-    { id: '20', name: '닭고기', unit: 'g' },
-    { id: '21', name: '고춧가루', unit: 'g' },
-    { id: '22', name: '물엿', unit: 'ml' },
-    { id: '23', name: '생강', unit: 'g' },
-    { id: '24', name: '쌀', unit: 'g' },
-    { id: '25', name: '참치캔', unit: '캔' },
-    { id: '26', name: '마요네즈', unit: 'g' },
-    { id: '27', name: '식빵', unit: '장' },
-    { id: '28', name: '버터', unit: 'g' },
+    { id: '1', name: '돼지고기', unit: 'g', category: 'meat' },
+    { id: '2', name: '김치', unit: 'g', category: 'vegetables' },
+    { id: '3', name: '두부', unit: '모', category: 'processed' },
+    { id: '4', name: '파', unit: '뿌리', category: 'vegetables' },
+    { id: '5', name: '양파', unit: '개', category: 'vegetables' },
+    { id: '6', name: '간장', unit: 'ml', category: 'sauces' },
+    { id: '7', name: '설탕', unit: 'g', category: 'seasonings' },
+    { id: '8', name: '참기름', unit: 'ml', category: 'sauces' },
+    { id: '9', name: '계란', unit: '개', category: 'dairy' },
+    { id: '10', name: '밥', unit: 'g', category: 'grains' },
+    { id: '11', name: '당근', unit: '개', category: 'vegetables' },
+    { id: '12', name: '소금', unit: 'g', category: 'seasonings' },
+    { id: '13', name: '후추', unit: 'g', category: 'seasonings' },
+    { id: '14', name: '마늘', unit: '쪽', category: 'vegetables' },
+    { id: '15', name: '고추장', unit: 'g', category: 'sauces' },
+    { id: '16', name: '된장', unit: 'g', category: 'sauces' },
+    { id: '17', name: '감자', unit: '개', category: 'vegetables' },
+    { id: '18', name: '애호박', unit: '개', category: 'vegetables' },
+    { id: '19', name: '청양고추', unit: '개', category: 'vegetables' },
+    { id: '20', name: '닭고기', unit: 'g', category: 'meat' },
+    { id: '21', name: '고춧가루', unit: 'g', category: 'seasonings' },
+    { id: '22', name: '물엿', unit: 'ml', category: 'seasonings' },
+    { id: '23', name: '생강', unit: 'g', category: 'seasonings' },
+    { id: '24', name: '쌀', unit: 'g', category: 'grains' },
+    { id: '25', name: '참치캔', unit: '캔', category: 'processed' },
+    { id: '26', name: '마요네즈', unit: 'g', category: 'sauces' },
+    { id: '27', name: '식빵', unit: '장', category: 'grains' },
+    { id: '28', name: '버터', unit: 'g', category: 'dairy' },
   ];
 
   for (const ingredient of sampleIngredients) {
     await db.runAsync(
-      'INSERT OR IGNORE INTO ingredients (id, name, unit) VALUES (?, ?, ?)',
-      [ingredient.id, ingredient.name, ingredient.unit]
+      'INSERT OR IGNORE INTO ingredients (id, name, unit, category) VALUES (?, ?, ?, ?)',
+      [ingredient.id, ingredient.name, ingredient.unit, ingredient.category]
     );
   }
 

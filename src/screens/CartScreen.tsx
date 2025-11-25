@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  SectionList,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
@@ -14,9 +14,50 @@ import { colors } from '../constants';
 import { useCart } from '../hooks/useCart';
 import { CartItemCard } from '../components/CartItemCard';
 import { formatCartAsText } from '../utils/shareCart';
+import { INGREDIENT_CATEGORIES, IngredientCategory } from '../types';
 
 export const CartScreen: React.FC = () => {
   const { cartItems, loading, error, clearAllCart, removeRecipeFromCart, refresh } = useCart();
+
+  // 카테고리별로 그룹화
+  const groupedCartItems = useMemo(() => {
+    const groups: { title: string; data: typeof cartItems }[] = [];
+    const categoryMap = new Map<IngredientCategory, typeof cartItems>();
+
+    cartItems.forEach((item) => {
+      const category = item.ingredient.category || 'others';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category)!.push(item);
+    });
+
+    // 카테고리 순서대로 정렬
+    const categoryOrder: IngredientCategory[] = [
+      'meat',
+      'seafood',
+      'vegetables',
+      'fruits',
+      'dairy',
+      'grains',
+      'sauces',
+      'seasonings',
+      'processed',
+      'others',
+    ];
+
+    categoryOrder.forEach((category) => {
+      const items = categoryMap.get(category);
+      if (items && items.length > 0) {
+        groups.push({
+          title: INGREDIENT_CATEGORIES[category],
+          data: items,
+        });
+      }
+    });
+
+    return groups;
+  }, [cartItems]);
 
   const handleClearCart = () => {
     Alert.alert(
@@ -108,11 +149,16 @@ export const CartScreen: React.FC = () => {
         </View>
       )}
 
-      <FlatList
-        data={cartItems}
+      <SectionList
+        sections={groupedCartItems}
         keyExtractor={(item) => item.ingredient.id}
         renderItem={({ item }) => (
           <CartItemCard group={item} onRemoveRecipe={handleRemoveRecipe} />
+        )}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>{title}</Text>
+          </View>
         )}
         contentContainerStyle={
           cartItems.length === 0 ? styles.emptyContainer : styles.listContent
@@ -134,6 +180,7 @@ export const CartScreen: React.FC = () => {
             tintColor={colors.primary}
           />
         }
+        stickySectionHeadersEnabled={true}
       />
     </View>
   );
@@ -247,6 +294,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  sectionHeader: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  sectionHeaderText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.primary,
   },
 });
 

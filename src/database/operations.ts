@@ -260,22 +260,23 @@ export const deleteRecipe = async (
 export const getIngredients = async (
   db: SQLite.SQLiteDatabase
 ): Promise<Ingredient[]> => {
-  const result = await db.getAllAsync<any>('SELECT * FROM ingredients ORDER BY name');
+  const result = await db.getAllAsync<any>('SELECT * FROM ingredients ORDER BY category, name');
   return result.map((row) => ({
     id: row.id,
     name: row.name,
     unit: row.unit,
+    category: row.category || 'others',
   }));
 };
 
 export const createIngredient = async (
   db: SQLite.SQLiteDatabase,
-  data: { name: string; unit: string }
+  data: { name: string; unit: string; category?: string }
 ): Promise<string> => {
   const id = generateId();
   await db.runAsync(
-    'INSERT INTO ingredients (id, name, unit) VALUES (?, ?, ?)',
-    [id, data.name, data.unit]
+    'INSERT INTO ingredients (id, name, unit, category) VALUES (?, ?, ?, ?)',
+    [id, data.name, data.unit, data.category || 'others']
   );
   return id;
 };
