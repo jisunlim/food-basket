@@ -32,13 +32,13 @@ export const RecipeFormScreen: React.FC<Props> = ({ route }) => {
   const { recipeId } = route.params;
   const isEdit = !!recipeId;
   const navigation = useNavigation<NavigationProp>();
-  const { recipe, loading: loadingRecipe } = useRecipeDetail(recipeId || '');
+  const { recipe, loading: loadingRecipe } = useRecipeDetail(recipeId || 0);
 
   const [name, setName] = useState('');
   const [servings, setServings] = useState('2');
   const [instructions, setInstructions] = useState('');
   const [ingredients, setIngredients] = useState<
-    { ingredientId: string; amount: number; isRequired: boolean }[]
+    { ingredientId: number; amount: number; isRequired: boolean }[]
   >([]);
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);

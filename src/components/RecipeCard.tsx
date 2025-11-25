@@ -1,57 +1,61 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Recipe } from '../types';
 import { RootStackParamList } from '../navigation/types';
 import { colors } from '../constants';
+import { useCart } from '../hooks/useCart';
+import { showToast } from '../utils/toast';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 interface Props {
   recipe: Recipe;
   onToggleFavorite: (recipeId: number, currentFavorite: boolean) => void;
-  onDelete: (recipeId: number) => void;
 }
 
 export const RecipeCard: React.FC<Props> = ({
   recipe,
   onToggleFavorite,
-  onDelete,
 }) => {
   const navigation = useNavigation<NavigationProp>();
+  const { addRecipeToCart, loading: cartLoading } = useCart();
+  const [servings, setServings] = useState(recipe.servings);
 
   const handlePress = () => {
     navigation.navigate('RecipeDetail', { recipeId: recipe.id });
   };
 
-  const handleFavoritePress = () => {
+  const handleFavoritePress = (e: any) => {
+    e.stopPropagation();
     onToggleFavorite(recipe.id, recipe.isFavorite);
   };
 
-  const handleDeletePress = () => {
-    Alert.alert(
-      '요리 삭제',
-      `"${recipe.name}"을(를) 삭제하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: () => onDelete(recipe.id),
-        },
-      ]
-    );
+  const handleServingsChange = (delta: number) => {
+    const newServings = Math.max(1, Math.min(20, servings + delta));
+    setServings(newServings);
   };
 
-  const handleEditPress = () => {
-    navigation.navigate('RecipeForm', { recipeId: recipe.id });
+  const handleAddToCart = async (e: any) => {
+    e.stopPropagation();
+    try {
+      const success = await addRecipeToCart(recipe.id, servings);
+      if (success) {
+        showToast(`${recipe.name} (${servings}인분) 담기 완료`);
+      } else {
+        showToast('장바구니에 추가하는데 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('장바구니 추가 오류:', error);
+      showToast('장바구니에 추가하는데 실패했습니다.');
+    }
   };
 
   return (
@@ -77,29 +81,45 @@ export const RecipeCard: React.FC<Props> = ({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.info}>
-        <Text style={styles.servings}>{recipe.servings}인분</Text>
-        {recipe.instructions && (
-          <Text style={styles.instructions} numberOfLines={2}>
-            {recipe.instructions}
-          </Text>
-        )}
-      </View>
+      {recipe.instructions && (
+        <Text style={styles.instructions} numberOfLines={2}>
+          {recipe.instructions}
+        </Text>
+      )}
 
       <View style={styles.actions}>
+        <View style={styles.servingsControl}>
+          <TouchableOpacity
+            style={styles.servingsButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleServingsChange(-1);
+            }}
+          >
+            <Text style={styles.servingsButtonText}>−</Text>
+          </TouchableOpacity>
+          <Text style={styles.servingsText}>{servings}인분</Text>
+          <TouchableOpacity
+            style={styles.servingsButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleServingsChange(1);
+            }}
+          >
+            <Text style={styles.servingsButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleEditPress}
+          style={[styles.cartButton, cartLoading && styles.cartButtonDisabled]}
+          onPress={handleAddToCart}
+          disabled={cartLoading}
         >
-          <Text style={styles.actionButtonText}>수정</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={handleDeletePress}
-        >
-          <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-            삭제
-          </Text>
+          {cartLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.cartButtonText}>🛒 담기</Text>
+          )}
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -144,41 +164,63 @@ const styles = StyleSheet.create({
   },
   favoriteButtonText: {
     fontSize: 24,
-    color: colors.favorite,
-  },
-  info: {
-    marginBottom: 12,
-  },
-  servings: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
+    color: colors.warning,
   },
   instructions: {
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
+    marginBottom: 12,
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  servingsControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 4,
+  },
+  servingsButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
     borderRadius: 6,
-    backgroundColor: colors.primary,
   },
-  actionButtonText: {
+  servingsButtonText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  servingsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text,
+    paddingHorizontal: 12,
+    minWidth: 60,
+    textAlign: 'center',
   },
-  deleteButton: {
-    backgroundColor: colors.error,
+  cartButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  deleteButtonText: {
+  cartButtonDisabled: {
+    opacity: 0.6,
+  },
+  cartButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

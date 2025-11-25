@@ -12,7 +12,8 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { colors } from '../constants';
 import { useRecipes } from '../hooks/useRecipes';
-import { RecipeCard, SearchBar, IngredientFilter, TagFilter } from '../components';
+import { RecipeCard, SearchBar } from '../components';
+import { FilterModal } from '../components/FilterModal';
 import { RootStackParamList } from '../navigation/types';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
@@ -21,10 +22,11 @@ export const RecipeListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [showFavoriteOnly, setShowFavoriteOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [selectedIngredients, setSelectedIngredients] = useState<number[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   
-  const { recipes, loading, error, toggleFavorite, removeRecipe, refresh } =
+  const { recipes, loading, error, toggleFavorite, refresh } =
     useRecipes(showFavoriteOnly ? { isFavorite: true } : undefined);
 
   // 필터링된 레시피 목록
@@ -83,7 +85,12 @@ export const RecipeListScreen: React.FC = () => {
     );
   }
 
-  const hasActiveFilters = searchQuery || selectedIngredients.length > 0 || selectedTags.length > 0;
+  const hasActiveFilters = selectedIngredients.length > 0 || selectedTags.length > 0;
+
+  const handleClearFilters = () => {
+    setSelectedIngredients([]);
+    setSelectedTags([]);
+  };
 
   return (
     <View style={styles.container}>
@@ -91,37 +98,54 @@ export const RecipeListScreen: React.FC = () => {
         <View style={styles.headerTop}>
           <TouchableOpacity
             style={[
-              styles.filterButton,
-              showFavoriteOnly && styles.filterButtonActive,
+              styles.favoriteButton,
+              showFavoriteOnly && styles.favoriteButtonActive,
             ]}
             onPress={() => setShowFavoriteOnly(!showFavoriteOnly)}
           >
             <Text
               style={[
-                styles.filterButtonText,
-                showFavoriteOnly && styles.filterButtonTextActive,
+                styles.favoriteButtonText,
+                showFavoriteOnly && styles.favoriteButtonTextActive,
               ]}
             >
-              {showFavoriteOnly ? '★ 즐겨찾기만' : '☆ 전체보기'}
+              {showFavoriteOnly ? '★' : '☆'}
             </Text>
           </TouchableOpacity>
+
+          <View style={styles.searchWrapper}>
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.filterIconButton, hasActiveFilters && styles.filterIconButtonActive]}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Text style={styles.filterIconText}>🔍</Text>
+            {hasActiveFilters && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>
+                  {selectedIngredients.length + selectedTags.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.addButton} onPress={handleAddRecipe}>
-            <Text style={styles.addButtonText}>+ 요리 추가</Text>
+            <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         </View>
-
-        <View style={styles.searchSection}>
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
-        </View>
-
-        <View style={styles.filterSection}>
-          <IngredientFilter
-            value={selectedIngredients}
-            onChange={setSelectedIngredients}
-          />
-          <TagFilter value={selectedTags} onChange={setSelectedTags} />
-        </View>
       </View>
+
+      <FilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        selectedIngredients={selectedIngredients}
+        selectedTags={selectedTags}
+        onIngredientsChange={setSelectedIngredients}
+        onTagsChange={setSelectedTags}
+        onClearAll={handleClearFilters}
+      />
 
       <FlatList
         data={filteredRecipes}
@@ -130,7 +154,6 @@ export const RecipeListScreen: React.FC = () => {
           <RecipeCard
             recipe={item}
             onToggleFavorite={toggleFavorite}
-            onDelete={removeRecipe}
           />
         )}
         contentContainerStyle={
@@ -183,53 +206,84 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingBottom: 12,
   },
   headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  searchSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  filterSection: {
-    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 8,
   },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  favoriteButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  filterButtonActive: {
-    backgroundColor: colors.primary,
+  favoriteButtonActive: {
+    backgroundColor: colors.warning + '20',
+    borderColor: colors.warning,
+  },
+  favoriteButtonText: {
+    fontSize: 22,
+    color: colors.textSecondary,
+  },
+  favoriteButtonTextActive: {
+    color: colors.warning,
+  },
+  searchWrapper: {
+    flex: 1,
+  },
+  filterIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  filterIconButtonActive: {
+    backgroundColor: colors.primary + '20',
     borderColor: colors.primary,
   },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
+  filterIconText: {
+    fontSize: 20,
   },
-  filterButtonTextActive: {
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
     color: '#FFFFFF',
   },
   addButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '300',
     color: '#FFFFFF',
   },
   listContent: {

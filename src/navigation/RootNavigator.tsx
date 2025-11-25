@@ -25,7 +25,13 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="MainTabs"
           component={TabNavigator}
-          options={{ headerShown: false }}
+          options={{ 
+            title: 'FoodBasket',
+            headerStyle: {
+              backgroundColor: colors.primary,
+            },
+            headerTintColor: '#FFFFFF',
+          }}
         />
         <Stack.Screen
           name="RecipeDetail"

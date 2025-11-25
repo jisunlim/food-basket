@@ -14,8 +14,8 @@ import { SearchBar } from './SearchBar';
 import { INGREDIENT_CATEGORIES, IngredientCategory } from '../types';
 
 interface Props {
-  value: string[];
-  onChange: (value: string[]) => void;
+  value: number[];
+  onChange: (value: number[]) => void;
 }
 
 export const IngredientFilter: React.FC<Props> = ({ value, onChange }) => {
@@ -23,7 +23,7 @@ export const IngredientFilter: React.FC<Props> = ({ value, onChange }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleToggle = (ingredientId: string) => {
+  const handleToggle = (ingredientId: number) => {
     if (value.includes(ingredientId)) {
       onChange(value.filter((id) => id !== ingredientId));
     } else {
@@ -35,7 +35,7 @@ export const IngredientFilter: React.FC<Props> = ({ value, onChange }) => {
     onChange([]);
   };
 
-  const getIngredientName = (ingredientId: string) => {
+  const getIngredientName = (ingredientId: number) => {
     return ingredients.find((i) => i.id === ingredientId)?.name || '';
   };
 

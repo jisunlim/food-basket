@@ -57,6 +57,21 @@ export const useIngredients = () => {
     }
   };
 
+  const createNewIngredient = async (name: string, unit: string): Promise<Ingredient | null> => {
+    if (!db) return null;
+
+    try {
+      const id = await createIngredient(db, { name, unit });
+      await loadIngredients();
+      const newIngredient = ingredients.find((i) => i.id === id);
+      return newIngredient || { id, name, unit, category: 'others' };
+    } catch (err) {
+      setError('재료 생성에 실패했습니다');
+      console.error(err);
+      return null;
+    }
+  };
+
   const searchIngredients = (query: string): Ingredient[] => {
     if (!query.trim()) return ingredients;
     
@@ -71,6 +86,7 @@ export const useIngredients = () => {
     loading,
     error,
     addIngredient,
+    createIngredient: createNewIngredient,
     searchIngredients,
     refresh: loadIngredients,
   };

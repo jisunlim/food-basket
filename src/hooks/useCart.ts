@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as SQLite from 'expo-sqlite';
 import { CartItemGroup } from '../types';
 import { getCartItemsGrouped, clearCart, removeCartItemsByRecipe, addToCart } from '../database/operations';
@@ -23,7 +23,7 @@ export const useCart = () => {
     initDb();
   }, []);
 
-  const loadCart = async () => {
+  const loadCart = React.useCallback(async () => {
     if (!db) return;
 
     try {
@@ -37,11 +37,11 @@ export const useCart = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [db]);
 
   useEffect(() => {
     loadCart();
-  }, [db]);
+  }, [loadCart]);
 
   const addRecipeToCart = async (recipeId: number, servings: number): Promise<boolean> => {
     if (!db) return false;
@@ -84,9 +84,23 @@ export const useCart = () => {
     }
   };
 
-  const refresh = () => {
-    loadCart();
+  const updateRecipeServings = async (recipeId: number, newServings: number) => {
+    if (!db) return;
+
+    try {
+      // 기존 항목 삭제 후 새로운 인분으로 다시 추가
+      await removeCartItemsByRecipe(db, recipeId);
+      await addToCart(db, recipeId, newServings);
+      await loadCart();
+    } catch (err) {
+      setError('인분 변경에 실패했습니다');
+      console.error(err);
+    }
   };
+
+  const refresh = React.useCallback(() => {
+    loadCart();
+  }, [loadCart]);
 
   return {
     cartItems,
@@ -95,6 +109,7 @@ export const useCart = () => {
     addRecipeToCart,
     clearAllCart,
     removeRecipeFromCart,
+    updateRecipeServings,
     refresh,
   };
 };

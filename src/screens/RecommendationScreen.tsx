@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import * as SQLite from 'expo-sqlite';
 import { colors } from '../constants';
 import { useRecommendations } from '../hooks/useRecommendations';
@@ -15,7 +16,15 @@ import { RecommendationCard } from '../components/RecommendationCard';
 
 export const RecommendationScreen: React.FC = () => {
   const { recommendations, loading, error, refresh } = useRecommendations();
-  const [cartIngredientIds, setCartIngredientIds] = useState<string[]>([]);
+  const [cartIngredientIds, setCartIngredientIds] = useState<number[]>([]);
+  const isFocused = useIsFocused();
+
+  // 탭이 포커스될 때마다 새로고침
+  useEffect(() => {
+    if (isFocused) {
+      refresh();
+    }
+  }, [isFocused]);
 
   // 장바구니 재료 ID 목록 가져오기
   useEffect(() => {

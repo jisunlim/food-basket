@@ -7,4 +7,5 @@ export { IngredientFilter } from './IngredientFilter';
 export { TagFilter } from './TagFilter';
 export { RecommendationCard } from './RecommendationCard';
 export { CartItemCard } from './CartItemCard';
+export { FilterModal } from './FilterModal';
 

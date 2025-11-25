@@ -8,13 +8,15 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { RouteProp, useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors } from '../constants';
 import { useRecipeDetail } from '../hooks/useRecipeDetail';
+import { useRecipes } from '../hooks/useRecipes';
 import { useCart } from '../hooks/useCart';
 import { ServingStepper } from '../components/ServingStepper';
+import { showToast } from '../utils/toast';
 
 type RecipeDetailScreenRouteProp = RouteProp<RootStackParamList, 'RecipeDetail'>;
 type NavigationProp = StackNavigationProp<RootStackParamList>;
@@ -27,6 +29,7 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
   const { recipeId } = route.params;
   const navigation = useNavigation<NavigationProp>();
   const { recipe, loading, error } = useRecipeDetail(recipeId);
+  const { removeRecipe } = useRecipes();
   const { addRecipeToCart, loading: cartLoading } = useCart();
   const [selectedServings, setSelectedServings] = useState(1);
 
@@ -43,10 +46,32 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
         '장바구니에 추가됨',
         `${recipe?.name} (${selectedServings}인분)이 장바구니에 추가되었습니다.`,
         [
-          { text: '계속 보기', style: 'cancel' },
+          {
+            text: '이전 화면',
+            onPress: () => navigation.goBack(),
+          },
           {
             text: '장바구니로',
-            onPress: () => navigation.navigate('MainTabs', { screen: 'Cart' }),
+            onPress: () => {
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      state: {
+                        routes: [
+                          { name: 'RecipeList' },
+                          { name: 'Cart' },
+                          { name: 'Recommendation' },
+                        ],
+                        index: 1,
+                      },
+                    },
+                  ],
+                })
+              );
+            },
           },
         ]
       );
@@ -57,6 +82,24 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
 
   const handleEdit = () => {
     navigation.navigate('RecipeForm', { recipeId });
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      '요리 삭제',
+      `"${recipe?.name}"을(를) 삭제하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            await removeRecipe(recipeId);
+            navigation.goBack();
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -87,9 +130,14 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
             <Text style={styles.title}>{recipe.name}</Text>
             {recipe.isFavorite && <Text style={styles.favoriteIcon}>⭐</Text>}
           </View>
-          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-            <Text style={styles.editButtonText}>수정</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+              <Text style={styles.editButtonText}>수정</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+              <Text style={styles.deleteButtonText}>삭제</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 인분 선택 */}
@@ -207,7 +255,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     padding: 20,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
@@ -227,6 +275,10 @@ const styles = StyleSheet.create({
   favoriteIcon: {
     fontSize: 20,
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   editButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -234,6 +286,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  deleteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: colors.error,
+  },
+  deleteButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',

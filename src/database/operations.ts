@@ -347,21 +347,39 @@ export const getCartItemsGrouped = async (
       i.name as ingredient_name,
       i.unit as ingredient_unit,
       i.category as ingredient_category,
-      r.name as recipe_name
+      r.name as recipe_name,
+      ri.is_required
      FROM cart_items ci
      JOIN ingredients i ON ci.ingredient_id = i.id
      JOIN recipes r ON ci.recipe_id = r.id
+     JOIN recipe_ingredients ri ON ri.recipe_id = ci.recipe_id AND ri.ingredient_id = ci.ingredient_id
      ORDER BY i.category, i.name`
   );
 
-  // 재료별로 그룹화
-  const groupMap = new Map<string, CartItemGroup>();
+  // 카테고리별로 그룹화
+  const categoryMap = new Map<string, Map<number, {
+    ingredient: Ingredient;
+    totalAmount: number;
+    recipes: {
+      recipe: Recipe;
+      amount: number;
+      servings: number;
+      isRequired: boolean;
+    }[];
+  }>>();
 
   for (const row of rows) {
+    const category = row.ingredient_category || 'others';
     const ingredientId = row.ingredient_id;
 
-    if (!groupMap.has(ingredientId)) {
-      groupMap.set(ingredientId, {
+    if (!categoryMap.has(category)) {
+      categoryMap.set(category, new Map());
+    }
+
+    const ingredientMap = categoryMap.get(category)!;
+
+    if (!ingredientMap.has(ingredientId)) {
+      ingredientMap.set(ingredientId, {
         ingredient: {
           id: ingredientId,
           name: row.ingredient_name,
@@ -373,7 +391,7 @@ export const getCartItemsGrouped = async (
       });
     }
 
-    const group = groupMap.get(ingredientId)!;
+    const group = ingredientMap.get(ingredientId)!;
     group.totalAmount += row.amount;
     group.recipes.push({
       recipe: {
@@ -386,10 +404,25 @@ export const getCartItemsGrouped = async (
       },
       amount: row.amount,
       servings: row.servings,
+      isRequired: row.is_required === 1,
     });
   }
 
-  return Array.from(groupMap.values());
+  // CartItemGroup 배열로 변환
+  const result: CartItemGroup[] = [];
+  const categoryOrder = ['meat', 'seafood', 'vegetables', 'fruits', 'dairy', 'grains', 'sauces', 'seasonings', 'processed', 'others'];
+
+  categoryOrder.forEach((category) => {
+    const ingredientMap = categoryMap.get(category);
+    if (ingredientMap && ingredientMap.size > 0) {
+      result.push({
+        category,
+        data: Array.from(ingredientMap.values()),
+      });
+    }
+  });
+
+  return result;
 };
 
 export const clearCart = async (db: SQLite.SQLiteDatabase): Promise<void> => {

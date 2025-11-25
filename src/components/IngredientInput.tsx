@@ -8,13 +8,17 @@ import {
   FlatList,
   Modal,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { colors } from '../constants';
 import { Ingredient } from '../types';
 import { useIngredients } from '../hooks/useIngredients';
 
+// 한국에서 자주 사용되는 단위
+const COMMON_UNITS = ['g', 'ml', 'kg', 'L', '개', '큰술', '작은술', '컵', '모', '줌', '꼬집'];
+
 interface IngredientItem {
-  ingredientId: string;
+  ingredientId: number;
   amount: number;
   isRequired: boolean;
 }
@@ -25,12 +29,15 @@ interface Props {
 }
 
 export const IngredientInput: React.FC<Props> = ({ value, onChange }) => {
-  const { ingredients, searchIngredients, addIngredient } = useIngredients();
+  const { ingredients, searchIngredients, createIngredient } = useIngredients();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
   const [amount, setAmount] = useState('');
   const [isRequired, setIsRequired] = useState(true);
+  const [editingIngredientId, setEditingIngredientId] = useState<number | null>(null);
+  const [newIngredientUnit, setNewIngredientUnit] = useState('');
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   const handleAddIngredient = () => {
     setModalVisible(true);
@@ -38,62 +45,107 @@ export const IngredientInput: React.FC<Props> = ({ value, onChange }) => {
     setSelectedIngredient(null);
     setAmount('');
     setIsRequired(true);
+    setEditingIngredientId(null);
+    setNewIngredientUnit('');
+    setIsCreatingNew(false);
+  };
+
+  const handleEditIngredient = (item: IngredientItem) => {
+    const ingredient = ingredients.find((i) => i.id === item.ingredientId);
+    if (ingredient) {
+      setEditingIngredientId(item.ingredientId);
+      setSelectedIngredient(ingredient);
+      setSearchQuery(ingredient.name);
+      setAmount(item.amount.toString());
+      setIsRequired(item.isRequired);
+      setModalVisible(true);
+      setIsCreatingNew(false);
+    }
   };
 
   const handleSelectIngredient = (ingredient: Ingredient) => {
     setSelectedIngredient(ingredient);
     setSearchQuery(ingredient.name);
+    setIsCreatingNew(false);
   };
 
-  const handleConfirm = () => {
-    if (!selectedIngredient) {
-      Alert.alert('오류', '재료를 선택해주세요');
+  const handleCreateNewIngredient = () => {
+    if (!searchQuery.trim()) {
+      Alert.alert('오류', '재료 이름을 입력해주세요');
       return;
     }
+    setIsCreatingNew(true);
+    setNewIngredientUnit(COMMON_UNITS[0]); // 기본값: 'g'
+  };
 
+  const handleConfirm = async () => {
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
       Alert.alert('오류', '올바른 양을 입력해주세요');
       return;
     }
 
-    // 중복 체크
-    if (value.some((item) => item.ingredientId === selectedIngredient.id)) {
-      Alert.alert('오류', '이미 추가된 재료입니다');
-      return;
+    let ingredientId: number;
+
+    if (isCreatingNew) {
+      // 새 재료 생성
+      if (!searchQuery.trim() || !newIngredientUnit.trim()) {
+        Alert.alert('오류', '재료 이름과 단위를 입력해주세요');
+        return;
+      }
+      const newIngredient = await createIngredient(searchQuery.trim(), newIngredientUnit.trim());
+      if (!newIngredient) {
+        Alert.alert('오류', '재료 생성에 실패했습니다');
+        return;
+      }
+      ingredientId = newIngredient.id;
+    } else {
+      if (!selectedIngredient) {
+        Alert.alert('오류', '재료를 선택해주세요');
+        return;
+      }
+      ingredientId = selectedIngredient.id;
     }
 
-    onChange([
-      ...value,
-      {
-        ingredientId: selectedIngredient.id,
-        amount: amountNum,
-        isRequired,
-      },
-    ]);
+    if (editingIngredientId !== null) {
+      // 수정 모드
+      onChange(
+        value.map((item) =>
+          item.ingredientId === editingIngredientId
+            ? { ...item, amount: amountNum, isRequired }
+            : item
+        )
+      );
+    } else {
+      // 추가 모드
+      // 중복 체크
+      if (value.some((item) => item.ingredientId === ingredientId)) {
+        Alert.alert('오류', '이미 추가된 재료입니다');
+        return;
+      }
+
+      onChange([
+        ...value,
+        {
+          ingredientId,
+          amount: amountNum,
+          isRequired,
+        },
+      ]);
+    }
 
     setModalVisible(false);
   };
 
-  const handleRemove = (ingredientId: string) => {
+  const handleRemove = (ingredientId: number) => {
     onChange(value.filter((item) => item.ingredientId !== ingredientId));
   };
 
-  const handleToggleRequired = (ingredientId: string) => {
-    onChange(
-      value.map((item) =>
-        item.ingredientId === ingredientId
-          ? { ...item, isRequired: !item.isRequired }
-          : item
-      )
-    );
-  };
-
-  const getIngredientName = (ingredientId: string) => {
+  const getIngredientName = (ingredientId: number) => {
     return ingredients.find((i) => i.id === ingredientId)?.name || '';
   };
 
-  const getIngredientUnit = (ingredientId: string) => {
+  const getIngredientUnit = (ingredientId: number) => {
     return ingredients.find((i) => i.id === ingredientId)?.unit || '';
   };
 
@@ -102,7 +154,12 @@ export const IngredientInput: React.FC<Props> = ({ value, onChange }) => {
   return (
     <View style={styles.container}>
       {value.map((item) => (
-        <View key={item.ingredientId} style={styles.ingredientItem}>
+        <TouchableOpacity
+          key={item.ingredientId}
+          style={styles.ingredientItem}
+          onPress={() => handleEditIngredient(item)}
+          activeOpacity={0.7}
+        >
           <View style={styles.ingredientInfo}>
             <Text style={styles.ingredientName}>
               {getIngredientName(item.ingredientId)}
@@ -111,25 +168,27 @@ export const IngredientInput: React.FC<Props> = ({ value, onChange }) => {
               {item.amount}
               {getIngredientUnit(item.ingredientId)}
             </Text>
-            <TouchableOpacity
+            <View
               style={[
                 styles.requiredBadge,
                 !item.isRequired && styles.optionalBadge,
               ]}
-              onPress={() => handleToggleRequired(item.ingredientId)}
             >
               <Text style={styles.badgeText}>
                 {item.isRequired ? '필수' : '선택'}
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
           <TouchableOpacity
-            onPress={() => handleRemove(item.ingredientId)}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleRemove(item.ingredientId);
+            }}
             style={styles.removeButton}
           >
             <Text style={styles.removeButtonText}>×</Text>
           </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       ))}
 
       <TouchableOpacity style={styles.addButton} onPress={handleAddIngredient}>
@@ -144,76 +203,164 @@ export const IngredientInput: React.FC<Props> = ({ value, onChange }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>재료 추가</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingIngredientId ? '재료 수정' : '재료 추가'}
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TextInput
-              style={styles.searchInput}
-              placeholder="재료 검색..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-
-            {searchQuery && !selectedIngredient && (
-              <FlatList
-                data={filteredIngredients}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.searchResultItem}
-                    onPress={() => handleSelectIngredient(item)}
-                  >
-                    <Text style={styles.searchResultName}>{item.name}</Text>
-                    <Text style={styles.searchResultUnit}>({item.unit})</Text>
-                  </TouchableOpacity>
-                )}
-                style={styles.searchResults}
-                ListEmptyComponent={
-                  <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
-                }
-              />
-            )}
-
-            {selectedIngredient && (
+            {!editingIngredientId && !selectedIngredient && !isCreatingNew && (
               <>
-                <View style={styles.selectedIngredient}>
-                  <Text style={styles.selectedText}>
-                    선택: {selectedIngredient.name}
-                  </Text>
-                </View>
-
                 <TextInput
-                  style={styles.input}
-                  placeholder={`양 (${selectedIngredient.unit})`}
-                  value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="numeric"
+                  style={styles.searchInput}
+                  placeholder="재료 검색..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
                 />
 
-                <TouchableOpacity
-                  style={styles.requiredToggle}
-                  onPress={() => setIsRequired(!isRequired)}
-                >
-                  <Text style={styles.requiredToggleText}>
-                    {isRequired ? '✓ 필수 재료' : '선택 재료'}
-                  </Text>
-                </TouchableOpacity>
+                {searchQuery && (
+                  <>
+                    <FlatList
+                      data={filteredIngredients}
+                      keyExtractor={(item) => item.id.toString()}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={styles.searchResultItem}
+                          onPress={() => handleSelectIngredient(item)}
+                        >
+                          <Text style={styles.searchResultName}>{item.name}</Text>
+                          <Text style={styles.searchResultUnit}>({item.unit})</Text>
+                        </TouchableOpacity>
+                      )}
+                      style={styles.searchResults}
+                    />
+                    {filteredIngredients.length === 0 && (
+                      <TouchableOpacity
+                        style={styles.createNewButton}
+                        onPress={handleCreateNewIngredient}
+                      >
+                        <Text style={styles.createNewButtonText}>
+                          "{searchQuery}" 새로 추가
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
               </>
             )}
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleConfirm}
-              >
-                <Text style={styles.confirmButtonText}>추가</Text>
-              </TouchableOpacity>
-            </View>
+            {(selectedIngredient || isCreatingNew || editingIngredientId) && (
+              <>
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>재료</Text>
+                  <Text style={styles.ingredientNameDisplay}>
+                    {isCreatingNew ? searchQuery : selectedIngredient?.name}
+                  </Text>
+                </View>
+
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>양과 단위</Text>
+                  <View style={styles.amountRow}>
+                    <TextInput
+                      style={styles.amountInput}
+                      placeholder="예: 200"
+                      value={amount}
+                      onChangeText={setAmount}
+                      keyboardType="numeric"
+                    />
+                    {isCreatingNew ? (
+                      <View style={styles.unitSelector}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          {COMMON_UNITS.map((unit) => (
+                            <TouchableOpacity
+                              key={unit}
+                              style={[
+                                styles.unitButton,
+                                newIngredientUnit === unit && styles.unitButtonActive,
+                              ]}
+                              onPress={() => setNewIngredientUnit(unit)}
+                            >
+                              <Text
+                                style={[
+                                  styles.unitButtonText,
+                                  newIngredientUnit === unit && styles.unitButtonTextActive,
+                                ]}
+                              >
+                                {unit}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    ) : (
+                      <View style={styles.unitDisplay}>
+                        <Text style={styles.unitDisplayText}>
+                          {selectedIngredient?.unit}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>필수 여부</Text>
+                  <View style={styles.requiredButtons}>
+                    <TouchableOpacity
+                      style={[
+                        styles.requiredButton,
+                        isRequired && styles.requiredButtonActive,
+                      ]}
+                      onPress={() => setIsRequired(true)}
+                    >
+                      <Text
+                        style={[
+                          styles.requiredButtonText,
+                          isRequired && styles.requiredButtonTextActive,
+                        ]}
+                      >
+                        필수
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.requiredButton,
+                        !isRequired && styles.optionalButtonActive,
+                      ]}
+                      onPress={() => setIsRequired(false)}
+                    >
+                      <Text
+                        style={[
+                          styles.requiredButtonText,
+                          !isRequired && styles.requiredButtonTextActive,
+                        ]}
+                      >
+                        선택
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelModalButton]}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.cancelModalButtonText}>취소</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={handleConfirm}
+                  >
+                    <Text style={styles.confirmButtonText}>
+                      {editingIngredientId ? '수정' : '추가'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -302,11 +449,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 16,
+  },
+  closeButton: {
+    fontSize: 28,
+    color: colors.textSecondary,
+    fontWeight: '300',
   },
   searchInput: {
     borderWidth: 1,
@@ -336,22 +493,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    padding: 20,
-  },
-  selectedIngredient: {
+  createNewButton: {
     padding: 12,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primary + '20',
     borderRadius: 8,
-    marginBottom: 12,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  selectedText: {
-    fontSize: 16,
+  createNewButtonText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.primaryDark,
+    color: colors.primary,
+  },
+  formSection: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  ingredientNameDisplay: {
+    fontSize: 16,
+    color: colors.text,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
   },
   input: {
     borderWidth: 1,
@@ -359,24 +527,90 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    marginBottom: 12,
   },
-  requiredToggle: {
+  amountRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  amountInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  unitSelector: {
+    flex: 1,
+  },
+  unitButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 6,
+    backgroundColor: colors.surface,
+  },
+  unitButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  unitButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  unitButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  unitDisplay: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  unitDisplayText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  requiredButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  requiredButton: {
+    flex: 1,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: colors.surface,
   },
-  requiredToggleText: {
-    fontSize: 16,
+  requiredButtonActive: {
+    backgroundColor: colors.required,
+    borderColor: colors.required,
+  },
+  optionalButtonActive: {
+    backgroundColor: colors.optional,
+    borderColor: colors.optional,
+  },
+  requiredButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+  },
+  requiredButtonTextActive: {
+    color: '#FFFFFF',
   },
   modalButtons: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 8,
   },
   modalButton: {
     flex: 1,
@@ -384,10 +618,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  cancelButton: {
+  cancelModalButton: {
     backgroundColor: colors.border,
   },
-  cancelButtonText: {
+  cancelModalButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,

@@ -82,12 +82,16 @@ export interface RecipeDetail extends Recipe {
 
 // 장바구니 그룹화 타입 (재료별로 그룹화)
 export interface CartItemGroup {
-  ingredient: Ingredient;
-  totalAmount: number;
-  recipes: {
-    recipe: Recipe;
-    amount: number;
-    servings: number;
+  category: string;
+  data: {
+    ingredient: Ingredient;
+    totalAmount: number;
+    recipes: {
+      recipe: Recipe;
+      amount: number;
+      servings: number;
+      isRequired: boolean;
+    }[];
   }[];
 }
 

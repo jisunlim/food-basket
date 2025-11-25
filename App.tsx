@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ActivityIndicator, Text } from 'react-native';
+import { RootSiblingParent } from 'react-native-root-siblings';
 import { initializeDatabase, seedDatabase } from './src/database/schema';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import * as SQLite from 'expo-sqlite';
@@ -39,10 +40,10 @@ export default function App() {
   }
 
   return (
-    <>
+    <RootSiblingParent>
       <RootNavigator />
       <StatusBar style="auto" />
-    </>
+    </RootSiblingParent>
   );
 }
 
