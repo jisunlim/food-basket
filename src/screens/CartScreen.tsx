@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
   Share,
 } from 'react-native';
+import PagerView from 'react-native-pager-view';
 import * as SQLite from 'expo-sqlite';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -32,6 +33,7 @@ export const CartScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('by-recipe');
   const [db, setDb] = useState<SQLite.SQLiteDatabase | null>(null);
   const [expandedIngredients, setExpandedIngredients] = useState<Set<number>>(new Set());
+  const pagerRef = useRef<PagerView>(null);
 
   useEffect(() => {
     const initDb = async () => {
@@ -125,6 +127,17 @@ export const CartScreen: React.FC = () => {
       }
       return newSet;
     });
+  };
+
+  const handleTabPress = (tab: TabType) => {
+    setActiveTab(tab);
+    const pageIndex = tab === 'by-recipe' ? 0 : 1;
+    pagerRef.current?.setPage(pageIndex);
+  };
+
+  const handlePageSelected = (e: any) => {
+    const position = e.nativeEvent.position;
+    setActiveTab(position === 0 ? 'by-recipe' : 'by-ingredient');
   };
 
   const handleToggleSkipPurchase = async (recipeId: number, ingredientId: number, currentSkipPurchase: boolean) => {
@@ -280,7 +293,7 @@ export const CartScreen: React.FC = () => {
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'by-recipe' && styles.tabActive]}
-          onPress={() => setActiveTab('by-recipe')}
+          onPress={() => handleTabPress('by-recipe')}
         >
           <Text style={[styles.tabText, activeTab === 'by-recipe' && styles.tabTextActive]}>
             요리별
@@ -288,7 +301,7 @@ export const CartScreen: React.FC = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'by-ingredient' && styles.tabActive]}
-          onPress={() => setActiveTab('by-ingredient')}
+          onPress={() => handleTabPress('by-ingredient')}
         >
           <Text style={[styles.tabText, activeTab === 'by-ingredient' && styles.tabTextActive]}>
             재료별
@@ -296,9 +309,16 @@ export const CartScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 요리별 뷰 */}
-      {activeTab === 'by-recipe' && (
-        <FlatList
+      {/* 스와이프 가능한 페이저 */}
+      <PagerView
+        ref={pagerRef}
+        style={styles.pagerView}
+        initialPage={0}
+        onPageSelected={handlePageSelected}
+      >
+        {/* 요리별 뷰 */}
+        <View key="by-recipe" style={styles.pageContainer}>
+          <FlatList
           data={recipeData}
           keyExtractor={(item) => item.recipe.id.toString()}
           renderItem={({ item }) => (
@@ -371,11 +391,11 @@ export const CartScreen: React.FC = () => {
             />
           }
         />
-      )}
+        </View>
 
-      {/* 재료별 뷰 */}
-      {activeTab === 'by-ingredient' && (
-        <SectionList
+        {/* 재료별 뷰 */}
+        <View key="by-ingredient" style={styles.pageContainer}>
+          <SectionList
           sections={sectionData}
           keyExtractor={(item, index) => `${item.ingredient.id}-${index}`}
           renderSectionHeader={({ section }) => (
@@ -450,7 +470,8 @@ export const CartScreen: React.FC = () => {
             />
           }
         />
-      )}
+        </View>
+      </PagerView>
 
       {/* 하단 공유 영역 */}
       <View style={styles.footer}>
@@ -534,6 +555,12 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: colors.primary,
+  },
+  pagerView: {
+    flex: 1,
+  },
+  pageContainer: {
+    flex: 1,
   },
   listContent: {
     paddingBottom: 100,
