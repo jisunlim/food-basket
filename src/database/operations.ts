@@ -43,7 +43,35 @@ export const getRecipes = async (
   query += ' ORDER BY is_favorite DESC, updated_at DESC';
 
   const result = await db.getAllAsync<any>(query, params);
-  return result.map(dbRowToRecipe);
+  const recipes = result.map(dbRowToRecipe);
+
+  // 각 레시피에 재료와 태그 정보 추가
+  for (const recipe of recipes) {
+    // 재료 조회
+    const ingredientRows = await db.getAllAsync<any>(
+      `SELECT ri.ingredient_id as id, i.name, i.unit
+       FROM recipe_ingredients ri 
+       JOIN ingredients i ON ri.ingredient_id = i.id 
+       WHERE ri.recipe_id = ?`,
+      [recipe.id]
+    );
+
+    recipe.ingredients = ingredientRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      unit: row.unit,
+    }));
+
+    // 태그 조회
+    const tagRows = await db.getAllAsync<any>(
+      'SELECT tag FROM recipe_tags WHERE recipe_id = ?',
+      [recipe.id]
+    );
+
+    recipe.tags = tagRows.map((row) => row.tag);
+  }
+
+  return recipes;
 };
 
 export const getRecipeById = async (

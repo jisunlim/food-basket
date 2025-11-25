@@ -7,6 +7,8 @@ export interface Recipe {
   instructions?: string; // 요리 과정
   createdAt: Date;
   updatedAt: Date;
+  ingredients?: Ingredient[]; // 목록 조회 시 포함
+  tags?: string[]; // 목록 조회 시 포함
 }
 
 // 식재료 타입

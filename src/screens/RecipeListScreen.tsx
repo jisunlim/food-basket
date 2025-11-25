@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { colors } from '../constants';
 import { useRecipes } from '../hooks/useRecipes';
-import { RecipeCard } from '../components/RecipeCard';
+import { RecipeCard, SearchBar, IngredientFilter, TagFilter } from '../components';
 import { RootStackParamList } from '../navigation/types';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
@@ -20,9 +20,44 @@ type NavigationProp = StackNavigationProp<RootStackParamList>;
 export const RecipeListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [showFavoriteOnly, setShowFavoriteOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   
   const { recipes, loading, error, toggleFavorite, removeRecipe, refresh } =
     useRecipes(showFavoriteOnly ? { isFavorite: true } : undefined);
+
+  // 필터링된 레시피 목록
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter((recipe) => {
+      // 검색어 필터
+      if (searchQuery && !recipe.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      // 재료 필터 (선택된 재료가 모두 포함되어야 함)
+      if (selectedIngredients.length > 0) {
+        const recipeIngredientIds = recipe.ingredients?.map((i) => i.id) || [];
+        const hasAllIngredients = selectedIngredients.every((id) =>
+          recipeIngredientIds.includes(id)
+        );
+        if (!hasAllIngredients) {
+          return false;
+        }
+      }
+
+      // 태그 필터 (선택된 태그 중 하나라도 포함되어야 함)
+      if (selectedTags.length > 0) {
+        const recipeTags = recipe.tags || [];
+        const hasAnyTag = selectedTags.some((tag) => recipeTags.includes(tag));
+        if (!hasAnyTag) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [recipes, searchQuery, selectedIngredients, selectedTags]);
 
   const handleAddRecipe = () => {
     navigation.navigate('RecipeForm', {});
@@ -48,32 +83,48 @@ export const RecipeListScreen: React.FC = () => {
     );
   }
 
+  const hasActiveFilters = searchQuery || selectedIngredients.length > 0 || selectedTags.length > 0;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            showFavoriteOnly && styles.filterButtonActive,
-          ]}
-          onPress={() => setShowFavoriteOnly(!showFavoriteOnly)}
-        >
-          <Text
+        <View style={styles.headerTop}>
+          <TouchableOpacity
             style={[
-              styles.filterButtonText,
-              showFavoriteOnly && styles.filterButtonTextActive,
+              styles.filterButton,
+              showFavoriteOnly && styles.filterButtonActive,
             ]}
+            onPress={() => setShowFavoriteOnly(!showFavoriteOnly)}
           >
-            {showFavoriteOnly ? '★ 즐겨찾기만' : '☆ 전체보기'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddRecipe}>
-          <Text style={styles.addButtonText}>+ 요리 추가</Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.filterButtonText,
+                showFavoriteOnly && styles.filterButtonTextActive,
+              ]}
+            >
+              {showFavoriteOnly ? '★ 즐겨찾기만' : '☆ 전체보기'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddRecipe}>
+            <Text style={styles.addButtonText}>+ 요리 추가</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchSection}>
+          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        </View>
+
+        <View style={styles.filterSection}>
+          <IngredientFilter
+            value={selectedIngredients}
+            onChange={setSelectedIngredients}
+          />
+          <TagFilter value={selectedTags} onChange={setSelectedTags} />
+        </View>
       </View>
 
       <FlatList
-        data={recipes}
+        data={filteredRecipes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <RecipeCard
@@ -83,17 +134,21 @@ export const RecipeListScreen: React.FC = () => {
           />
         )}
         contentContainerStyle={
-          recipes.length === 0 ? styles.emptyContainer : styles.listContent
+          filteredRecipes.length === 0 ? styles.emptyContainer : styles.listContent
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>
-              {showFavoriteOnly
+              {hasActiveFilters
+                ? '검색 결과가 없습니다'
+                : showFavoriteOnly
                 ? '즐겨찾는 요리가 없습니다'
                 : '등록된 요리가 없습니다'}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {showFavoriteOnly
+              {hasActiveFilters
+                ? '다른 검색어나 필터를 시도해보세요'
+                : showFavoriteOnly
                 ? '요리를 즐겨찾기에 추가해보세요'
                 : '+ 버튼을 눌러 첫 요리를 추가해보세요'}
             </Text>
@@ -125,13 +180,26 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    paddingBottom: 12,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  searchSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  filterSection: {
+    paddingHorizontal: 16,
+    gap: 8,
   },
   filterButton: {
     paddingHorizontal: 16,
