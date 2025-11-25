@@ -318,11 +318,12 @@ export const getCartItemsGrouped = async (
       ci.*,
       i.name as ingredient_name,
       i.unit as ingredient_unit,
+      i.category as ingredient_category,
       r.name as recipe_name
      FROM cart_items ci
      JOIN ingredients i ON ci.ingredient_id = i.id
      JOIN recipes r ON ci.recipe_id = r.id
-     ORDER BY i.name`
+     ORDER BY i.category, i.name`
   );
 
   // 재료별로 그룹화
@@ -337,6 +338,7 @@ export const getCartItemsGrouped = async (
           id: ingredientId,
           name: row.ingredient_name,
           unit: row.ingredient_unit,
+          category: row.ingredient_category || 'others',
         },
         totalAmount: 0,
         recipes: [],
