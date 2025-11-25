@@ -8,8 +8,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { colors } from '../constants';
-import { IngredientFilter } from './IngredientFilter';
-import { TagFilter } from './TagFilter';
+import { IngredientFilterList } from './IngredientFilterList';
+import { TagFilterList } from './TagFilterList';
 
 interface Props {
   visible: boolean;
@@ -55,21 +55,21 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
 
-          <ScrollView style={styles.content}>
+          <View style={styles.content}>
             <View style={styles.section}>
-              <IngredientFilter
+              <IngredientFilterList
                 value={selectedIngredients}
                 onChange={onIngredientsChange}
               />
             </View>
 
             <View style={styles.section}>
-              <TagFilter
+              <TagFilterList
                 value={selectedTags}
                 onChange={onTagsChange}
               />
             </View>
-          </ScrollView>
+          </View>
 
           <View style={styles.footer}>
             <TouchableOpacity style={styles.applyButton} onPress={onClose}>
@@ -130,9 +130,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingHorizontal: 16,
   },
   section: {
-    padding: 16,
+    flex: 1,
+    paddingVertical: 8,
   },
   footer: {
     padding: 16,

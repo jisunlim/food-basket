@@ -13,7 +13,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { colors } from '../constants';
 import { useRecipes } from '../hooks/useRecipes';
 import { RecipeCard, SearchBar } from '../components';
-import { FilterModal } from '../components/FilterModal';
 import { RootStackParamList } from '../navigation/types';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
@@ -22,9 +21,6 @@ export const RecipeListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [showFavoriteOnly, setShowFavoriteOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedIngredients, setSelectedIngredients] = useState<number[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [showFilterModal, setShowFilterModal] = useState(false);
   
   const { recipes, loading, error, toggleFavorite, refresh } =
     useRecipes(showFavoriteOnly ? { isFavorite: true } : undefined);
@@ -36,30 +32,9 @@ export const RecipeListScreen: React.FC = () => {
       if (searchQuery && !recipe.name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
-
-      // 재료 필터 (선택된 재료가 모두 포함되어야 함)
-      if (selectedIngredients.length > 0) {
-        const recipeIngredientIds = recipe.ingredients?.map((i) => i.id) || [];
-        const hasAllIngredients = selectedIngredients.every((id) =>
-          recipeIngredientIds.includes(id)
-        );
-        if (!hasAllIngredients) {
-          return false;
-        }
-      }
-
-      // 태그 필터 (선택된 태그 중 하나라도 포함되어야 함)
-      if (selectedTags.length > 0) {
-        const recipeTags = recipe.tags || [];
-        const hasAnyTag = selectedTags.some((tag) => recipeTags.includes(tag));
-        if (!hasAnyTag) {
-          return false;
-        }
-      }
-
       return true;
     });
-  }, [recipes, searchQuery, selectedIngredients, selectedTags]);
+  }, [recipes, searchQuery]);
 
   const handleAddRecipe = () => {
     navigation.navigate('RecipeForm', {});
@@ -84,13 +59,6 @@ export const RecipeListScreen: React.FC = () => {
       </View>
     );
   }
-
-  const hasActiveFilters = selectedIngredients.length > 0 || selectedTags.length > 0;
-
-  const handleClearFilters = () => {
-    setSelectedIngredients([]);
-    setSelectedTags([]);
-  };
 
   return (
     <View style={styles.container}>
@@ -117,35 +85,11 @@ export const RecipeListScreen: React.FC = () => {
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
           </View>
 
-          <TouchableOpacity
-            style={[styles.filterIconButton, hasActiveFilters && styles.filterIconButtonActive]}
-            onPress={() => setShowFilterModal(true)}
-          >
-            <Text style={styles.filterIconText}>🔍</Text>
-            {hasActiveFilters && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>
-                  {selectedIngredients.length + selectedTags.length}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.addButton} onPress={handleAddRecipe}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      <FilterModal
-        visible={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        selectedIngredients={selectedIngredients}
-        selectedTags={selectedTags}
-        onIngredientsChange={setSelectedIngredients}
-        onTagsChange={setSelectedTags}
-        onClearAll={handleClearFilters}
-      />
 
       <FlatList
         data={filteredRecipes}
@@ -162,15 +106,15 @@ export const RecipeListScreen: React.FC = () => {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>
-              {hasActiveFilters
+              {searchQuery
                 ? '검색 결과가 없습니다'
                 : showFavoriteOnly
                 ? '즐겨찾는 요리가 없습니다'
                 : '등록된 요리가 없습니다'}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {hasActiveFilters
-                ? '다른 검색어나 필터를 시도해보세요'
+              {searchQuery
+                ? '다른 검색어를 시도해보세요'
                 : showFavoriteOnly
                 ? '요리를 즐겨찾기에 추가해보세요'
                 : '+ 버튼을 눌러 첫 요리를 추가해보세요'}
@@ -237,41 +181,6 @@ const styles = StyleSheet.create({
   },
   searchWrapper: {
     flex: 1,
-  },
-  filterIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  filterIconButtonActive: {
-    backgroundColor: colors.primary + '20',
-    borderColor: colors.primary,
-  },
-  filterIconText: {
-    fontSize: 20,
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: colors.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  filterBadgeText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   addButton: {
     width: 44,
