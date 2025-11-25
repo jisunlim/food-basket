@@ -309,7 +309,7 @@ export const addToCart = async (
   }
 };
 
-export const getCartItems = async (
+export const getCartItemsGrouped = async (
   db: SQLite.SQLiteDatabase
 ): Promise<CartItemGroup[]> => {
   const rows = await db.getAllAsync<any>(
