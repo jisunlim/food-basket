@@ -386,11 +386,22 @@ export const getRecommendations = async (
 
   if (cartIngredientIds.length === 0) return [];
 
+  // 장바구니에 이미 담긴 레시피 ID 조회
+  const cartRecipes = await db.getAllAsync<any>(
+    'SELECT DISTINCT recipe_id FROM cart_items'
+  );
+  const cartRecipeIds = cartRecipes.map((row) => row.recipe_id);
+
   // 모든 요리 조회
   const recipes = await getRecipes(db);
   const recommendations: RecipeRecommendation[] = [];
 
   for (const recipe of recipes) {
+    // 이미 장바구니에 담긴 요리는 제외
+    if (cartRecipeIds.includes(recipe.id)) {
+      continue;
+    }
+
     const detail = await getRecipeById(db, recipe.id);
     if (!detail) continue;
 

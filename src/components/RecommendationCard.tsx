@@ -26,7 +26,10 @@ export const RecommendationCard: React.FC<Props> = ({
   const { recipe, missingRequiredCount } = recommendation;
 
   const handlePress = () => {
-    navigation.navigate('RecipeDetail', { recipeId: parseInt(recipe.id) });
+    const recipeIdNum = parseInt(recipe.id, 10);
+    if (!isNaN(recipeIdNum)) {
+      navigation.navigate('RecipeDetail', { recipeId: recipeIdNum });
+    }
   };
 
   // 재료를 장바구니 보유/부족으로 분류
