@@ -1,5 +1,5 @@
 import * as Sharing from 'expo-sharing';
-import { CartItemGroup } from '../types';
+import { CartItemGroup, INGREDIENT_CATEGORIES, IngredientCategory } from '../types';
 
 /**
  * 장바구니 아이템을 텍스트 형식으로 변환
@@ -11,19 +11,44 @@ export const formatCartAsText = (cartItems: CartItemGroup[]): string => {
 
   let text = '[장보기 목록]\n\n';
 
-  for (const group of cartItems) {
-    const { ingredient, totalAmount, recipes } = group;
-    
-    // 재료명과 총량
-    text += `${ingredient.name} ${totalAmount}${ingredient.unit}\n`;
-    
-    // 각 요리별 사용량
-    for (const recipeInfo of recipes) {
-      text += `- ${recipeInfo.recipe.name} (${recipeInfo.servings}인분): ${recipeInfo.amount}${ingredient.unit}\n`;
+  // 카테고리별로 그룹화
+  const categoryMap = new Map<IngredientCategory, CartItemGroup[]>();
+  
+  cartItems.forEach((item) => {
+    const category = item.ingredient.category || 'others';
+    if (!categoryMap.has(category)) {
+      categoryMap.set(category, []);
     }
-    
-    text += '\n';
-  }
+    categoryMap.get(category)!.push(item);
+  });
+
+  // 카테고리 순서대로 출력
+  const categoryOrder: IngredientCategory[] = [
+    'meat',
+    'seafood',
+    'vegetables',
+    'fruits',
+    'dairy',
+    'grains',
+    'sauces',
+    'seasonings',
+    'processed',
+    'others',
+  ];
+
+  categoryOrder.forEach((category) => {
+    const items = categoryMap.get(category);
+    if (items && items.length > 0) {
+      text += `【${INGREDIENT_CATEGORIES[category]}】\n`;
+      
+      items.forEach((group) => {
+        const { ingredient, totalAmount } = group;
+        text += `• ${ingredient.name} ${totalAmount}${ingredient.unit}\n`;
+      });
+      
+      text += '\n';
+    }
+  });
 
   return text.trim();
 };
