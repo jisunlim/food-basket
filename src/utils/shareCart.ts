@@ -1,5 +1,5 @@
 import * as Sharing from 'expo-sharing';
-import { CartItemGroup } from '../types';
+import { CartItemGroup, INGREDIENT_CATEGORIES, IngredientCategory } from '../types';
 
 /**
  * 장바구니 아이템을 텍스트 형식으로 변환
@@ -11,19 +11,19 @@ export const formatCartAsText = (cartItems: CartItemGroup[]): string => {
 
   let text = '[장보기 목록]\n\n';
 
-  for (const group of cartItems) {
-    const { ingredient, totalAmount, recipes } = group;
+  // CartItemGroup은 이미 카테고리별로 그룹화되어 있음
+  cartItems.forEach((group) => {
+    const categoryKey = group.category as IngredientCategory;
+    const categoryName = INGREDIENT_CATEGORIES[categoryKey] || group.category;
     
-    // 재료명과 총량
-    text += `${ingredient.name} ${totalAmount}${ingredient.unit}\n`;
+    text += `【${categoryName}】\n`;
     
-    // 각 요리별 사용량
-    for (const recipeInfo of recipes) {
-      text += `- ${recipeInfo.recipe.name} (${recipeInfo.servings}인분): ${recipeInfo.amount}${ingredient.unit}\n`;
-    }
+    group.data.forEach((item) => {
+      text += `• ${item.ingredient.name} ${item.totalAmount.toFixed(1)}${item.ingredient.unit}\n`;
+    });
     
     text += '\n';
-  }
+  });
 
   return text.trim();
 };

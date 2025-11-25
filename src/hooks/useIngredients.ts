@@ -1,0 +1,96 @@
+import { useState, useEffect, useCallback } from 'react';
+import * as SQLite from 'expo-sqlite';
+import { Ingredient, IngredientCategory } from '../types';
+import { getIngredients, createIngredient } from '../database/operations';
+
+export const useIngredients = () => {
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [db, setDb] = useState<SQLite.SQLiteDatabase | null>(null);
+
+  useEffect(() => {
+    const initDb = async () => {
+      try {
+        const database = await SQLite.openDatabaseAsync('foodbasket.db');
+        setDb(database);
+      } catch (err) {
+        setError('데이터베이스 연결 실패');
+        console.error(err);
+      }
+    };
+
+    initDb();
+  }, []);
+
+  const loadIngredients = useCallback(async () => {
+    if (!db) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getIngredients(db);
+      setIngredients(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '재료 목록을 불러오는데 실패했습니다';
+      setError(errorMessage);
+      console.error('재료 목록 로드 실패:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [db]);
+
+  useEffect(() => {
+    loadIngredients();
+  }, [loadIngredients]);
+
+  const addIngredient = async (name: string, unit: string) => {
+    if (!db) return null;
+
+    try {
+      const id = await createIngredient(db, { name, unit });
+      await loadIngredients();
+      return id;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '재료 추가에 실패했습니다';
+      setError(errorMessage);
+      console.error('재료 추가 실패:', err);
+      return null;
+    }
+  };
+
+  const createNewIngredient = async (name: string, unit: string): Promise<Ingredient | null> => {
+    if (!db) return null;
+
+    try {
+      const id = await createIngredient(db, { name, unit });
+      await loadIngredients();
+      const newIngredient = ingredients.find((i) => i.id === id);
+      return newIngredient || { id, name, unit, category: 'others' };
+    } catch (err) {
+      setError('재료 생성에 실패했습니다');
+      console.error(err);
+      return null;
+    }
+  };
+
+  const searchIngredients = (query: string): Ingredient[] => {
+    if (!query.trim()) return ingredients;
+    
+    const lowerQuery = query.toLowerCase();
+    return ingredients.filter((ingredient) =>
+      ingredient.name.toLowerCase().includes(lowerQuery)
+    );
+  };
+
+  return {
+    ingredients,
+    loading,
+    error,
+    addIngredient,
+    createIngredient: createNewIngredient,
+    searchIngredients,
+    refresh: loadIngredients,
+  };
+};
+
