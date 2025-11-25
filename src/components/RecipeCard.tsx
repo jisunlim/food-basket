@@ -19,11 +19,13 @@ type NavigationProp = StackNavigationProp<RootStackParamList>;
 interface Props {
   recipe: Recipe;
   onToggleFavorite: (recipeId: number, currentFavorite: boolean) => void;
+  onCartUpdate?: () => void; // 장바구니 업데이트 콜백 추가
 }
 
 export const RecipeCard: React.FC<Props> = ({
   recipe,
   onToggleFavorite,
+  onCartUpdate,
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const { addRecipeToCart, loading: cartLoading } = useCart();
@@ -49,6 +51,10 @@ export const RecipeCard: React.FC<Props> = ({
       const success = await addRecipeToCart(recipe.id, servings);
       if (success) {
         showToast(`${recipe.name} (${servings}인분) 담기 완료`);
+        // 장바구니 업데이트 콜백 호출
+        if (onCartUpdate) {
+          onCartUpdate();
+        }
       } else {
         showToast('장바구니에 추가하는데 실패했습니다.');
       }
@@ -60,25 +66,22 @@ export const RecipeCard: React.FC<Props> = ({
 
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[
+        styles.container,
+        recipe.isFavorite && styles.containerFavorite,
+      ]}
       onPress={handlePress}
       activeOpacity={0.7}
     >
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{recipe.name}</Text>
-          {recipe.isFavorite && (
-            <Text style={styles.favoriteIcon}>⭐</Text>
-          )}
         </View>
-        <TouchableOpacity
-          onPress={handleFavoritePress}
-          style={styles.favoriteButton}
-        >
-          <Text style={styles.favoriteButtonText}>
-            {recipe.isFavorite ? '★' : '☆'}
-          </Text>
-        </TouchableOpacity>
+        {recipe.isFavorite && (
+          <View style={styles.favoriteBadge}>
+            <Text style={styles.favoriteBadgeText}>내가 좋아하는 요리</Text>
+          </View>
+        )}
       </View>
 
       {recipe.instructions && (
@@ -138,15 +141,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  containerFavorite: {
+    backgroundColor: '#FFF9E6',
+    borderColor: '#FFD700',
   },
   header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 8,
   },
   titleContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -154,17 +162,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginRight: 8,
   },
-  favoriteIcon: {
-    fontSize: 16,
+  favoriteBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  favoriteButton: {
-    padding: 4,
-  },
-  favoriteButtonText: {
-    fontSize: 24,
-    color: colors.warning,
+  favoriteBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#8B6914',
   },
   instructions: {
     fontSize: 14,

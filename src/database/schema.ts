@@ -75,6 +75,8 @@ export const initializeDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
       amount REAL NOT NULL,
       servings INTEGER NOT NULL,
       added_at TEXT NOT NULL,
+      has_at_home INTEGER DEFAULT 0,
+      skip_purchase INTEGER DEFAULT 0,
       FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
       FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
     );
