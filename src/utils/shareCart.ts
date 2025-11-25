@@ -1,8 +1,10 @@
 import * as Sharing from 'expo-sharing';
 import { CartItemGroup, INGREDIENT_CATEGORIES, IngredientCategory } from '../types';
+import { formatAmount } from './formatAmount';
 
 /**
  * 장바구니 아이템을 텍스트 형식으로 변환
+ * 체크되지 않은 재료만 포함 (hasAtHome=false && skipPurchase=false)
  */
 export const formatCartAsText = (cartItems: CartItemGroup[]): string => {
   if (cartItems.length === 0) {
@@ -10,20 +12,31 @@ export const formatCartAsText = (cartItems: CartItemGroup[]): string => {
   }
 
   let text = '[장보기 목록]\n\n';
+  let hasItems = false;
 
   // CartItemGroup은 이미 카테고리별로 그룹화되어 있음
   cartItems.forEach((group) => {
     const categoryKey = group.category as IngredientCategory;
     const categoryName = INGREDIENT_CATEGORIES[categoryKey] || group.category;
     
-    text += `【${categoryName}】\n`;
+    // 체크되지 않은 재료만 필터링
+    const neededItems = group.data.filter((item) => !item.hasAtHome && !item.skipPurchase);
     
-    group.data.forEach((item) => {
-      text += `• ${item.ingredient.name} ${item.totalAmount.toFixed(1)}${item.ingredient.unit}\n`;
-    });
-    
-    text += '\n';
+    if (neededItems.length > 0) {
+      hasItems = true;
+      text += `【${categoryName}】\n`;
+      
+      neededItems.forEach((item) => {
+          text += `• ${item.ingredient.name} ${formatAmount(item.totalAmount)}${item.ingredient.unit}\n`;
+      });
+      
+      text += '\n';
+    }
   });
+
+  if (!hasItems) {
+    return '구매할 재료가 없습니다.';
+  }
 
   return text.trim();
 };

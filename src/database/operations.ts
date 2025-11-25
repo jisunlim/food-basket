@@ -37,7 +37,7 @@ export const getRecipes = async (
     params.push(filters.ingredientId);
   }
 
-  query += ' ORDER BY is_favorite DESC, updated_at DESC';
+  query += ' ORDER BY updated_at DESC';
 
   const result = await db.getAllAsync<any>(query, params);
   const recipes = result.map(dbRowToRecipe);
@@ -355,18 +355,21 @@ export const getCartItemsGrouped = async (
      JOIN ingredients i ON ci.ingredient_id = i.id
      JOIN recipes r ON ci.recipe_id = r.id
      JOIN recipe_ingredients ri ON ri.recipe_id = ci.recipe_id AND ri.ingredient_id = ci.ingredient_id
-     ORDER BY i.category, i.name`
+     ORDER BY ci.added_at DESC, i.category, i.name`
   );
 
   // 카테고리별로 그룹화
   const categoryMap = new Map<string, Map<number, {
     ingredient: Ingredient;
     totalAmount: number;
+    hasAtHome: boolean;
+    skipPurchase: boolean;
     recipes: {
       recipe: Recipe;
       amount: number;
       servings: number;
       isRequired: boolean;
+      skipPurchase: boolean; // 요리별 skip_purchase 추가
     }[];
   }>>();
 
@@ -389,12 +392,18 @@ export const getCartItemsGrouped = async (
           category: row.ingredient_category || 'others',
         },
         totalAmount: 0,
+        hasAtHome: false, // 재료 전체 레벨에서는 사용하지 않음
+        skipPurchase: false, // 재료 전체 레벨에서는 사용하지 않음
         recipes: [],
       });
     }
 
     const group = ingredientMap.get(ingredientId)!;
-    group.totalAmount += row.amount;
+    // skip_purchase가 false인 것만 totalAmount에 포함
+    if (row.skip_purchase !== 1) {
+      group.totalAmount += row.amount;
+    }
+    
     group.recipes.push({
       recipe: {
         id: row.recipe_id,
@@ -407,6 +416,7 @@ export const getCartItemsGrouped = async (
       amount: row.amount,
       servings: row.servings,
       isRequired: row.is_required === 1,
+      skipPurchase: row.skip_purchase === 1, // 각 요리별 skip_purchase 상태
     });
   }
 
@@ -436,6 +446,19 @@ export const removeCartItemsByRecipe = async (
   recipeId: number
 ): Promise<void> => {
   await db.runAsync('DELETE FROM cart_items WHERE recipe_id = ?', [recipeId]);
+};
+
+export const updateCartItemCheckbox = async (
+  db: SQLite.SQLiteDatabase,
+  recipeId: number,
+  ingredientId: number,
+  field: 'has_at_home' | 'skip_purchase',
+  value: boolean
+): Promise<void> => {
+  await db.runAsync(
+    `UPDATE cart_items SET ${field} = ? WHERE recipe_id = ? AND ingredient_id = ?`,
+    [value ? 1 : 0, recipeId, ingredientId]
+  );
 };
 
 // ===== 추천 시스템 =====

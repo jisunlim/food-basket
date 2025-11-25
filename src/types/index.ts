@@ -86,11 +86,14 @@ export interface CartItemGroup {
   data: {
     ingredient: Ingredient;
     totalAmount: number;
+    hasAtHome: boolean; // 재료 전체 레벨 (사용하지 않음)
+    skipPurchase: boolean; // 재료 전체 레벨 (사용하지 않음)
     recipes: {
       recipe: Recipe;
       amount: number;
       servings: number;
       isRequired: boolean;
+      skipPurchase: boolean; // 요리별 skip_purchase 상태
     }[];
   }[];
 }

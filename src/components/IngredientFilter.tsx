@@ -149,7 +149,7 @@ export const IngredientFilter: React.FC<Props> = ({ value, onChange }) => {
 
             <SectionList
               sections={groupedIngredients}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => {
                 const isSelected = value.includes(item.id);
                 return (

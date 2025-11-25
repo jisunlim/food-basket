@@ -17,6 +17,7 @@ import { useRecipes } from '../hooks/useRecipes';
 import { useCart } from '../hooks/useCart';
 import { ServingStepper } from '../components/ServingStepper';
 import { showToast } from '../utils/toast';
+import { formatAmount } from '../utils/formatAmount';
 
 type RecipeDetailScreenRouteProp = RouteProp<RootStackParamList, 'RecipeDetail'>;
 type NavigationProp = StackNavigationProp<RootStackParamList>;
@@ -28,8 +29,8 @@ interface Props {
 export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
   const { recipeId } = route.params;
   const navigation = useNavigation<NavigationProp>();
-  const { recipe, loading, error } = useRecipeDetail(recipeId);
-  const { removeRecipe } = useRecipes();
+  const { recipe, loading, error, refresh } = useRecipeDetail(recipeId);
+  const { removeRecipe, toggleFavorite } = useRecipes();
   const { addRecipeToCart, loading: cartLoading } = useCart();
   const [selectedServings, setSelectedServings] = useState(1);
 
@@ -102,6 +103,12 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
     );
   };
 
+  const handleToggleFavorite = async () => {
+    if (!recipe) return;
+    await toggleFavorite(recipeId, recipe.isFavorite);
+    refresh();
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -128,9 +135,22 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{recipe.name}</Text>
-            {recipe.isFavorite && <Text style={styles.favoriteIcon}>⭐</Text>}
           </View>
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[
+                styles.favoriteButton,
+                recipe.isFavorite && styles.favoriteButtonActive,
+              ]}
+              onPress={handleToggleFavorite}
+            >
+              <Text style={[
+                styles.favoriteButtonText,
+                recipe.isFavorite && styles.favoriteButtonTextActive,
+              ]}>
+                {recipe.isFavorite ? '★' : '☆'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
               <Text style={styles.editButtonText}>수정</Text>
             </TouchableOpacity>
@@ -166,7 +186,7 @@ export const RecipeDetailScreen: React.FC<Props> = ({ route }) => {
                     • {item.ingredient?.name}
                   </Text>
                   <Text style={styles.ingredientAmount}>
-                    {(item.amount * multiplier).toFixed(1)}
+                    {formatAmount(item.amount * multiplier)}
                     {item.ingredient?.unit}
                   </Text>
                 </View>
@@ -270,14 +290,29 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    marginRight: 8,
-  },
-  favoriteIcon: {
-    fontSize: 20,
   },
   headerActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  favoriteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  favoriteButtonActive: {
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
+  },
+  favoriteButtonText: {
+    fontSize: 18,
+    color: colors.textSecondary,
+  },
+  favoriteButtonTextActive: {
+    color: '#8B6914',
   },
   editButton: {
     paddingHorizontal: 16,

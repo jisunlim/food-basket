@@ -2,8 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './types';
-import { TabNavigator } from './TabNavigator';
-import { RecipeDetailScreen, RecipeFormScreen } from '../screens';
+import { RecipeListScreen, CartScreen, RecipeDetailScreen, RecipeFormScreen } from '../screens';
 import { colors } from '../constants';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -23,15 +22,20 @@ export const RootNavigator: React.FC = () => {
         }}
       >
         <Stack.Screen
-          name="MainTabs"
-          component={TabNavigator}
+          name="Home"
+          component={RecipeListScreen}
           options={{ 
-            title: 'FoodBasket',
+            title: '오늘 뭐 해먹을까요?',
             headerStyle: {
               backgroundColor: colors.primary,
             },
             headerTintColor: '#FFFFFF',
           }}
+        />
+        <Stack.Screen
+          name="Cart"
+          component={CartScreen}
+          options={{ title: '장바구니' }}
         />
         <Stack.Screen
           name="RecipeDetail"
