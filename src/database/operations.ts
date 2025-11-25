@@ -285,17 +285,56 @@ export const addToCart = async (
   const multiplier = servings / recipe.servings;
   const now = new Date().toISOString();
 
-  for (const ingredient of recipe.ingredients) {
-    await db.runAsync(
-      'INSERT INTO cart_items (recipe_id, ingredient_id, amount, servings, added_at) VALUES (?, ?, ?, ?, ?)',
-      [
-        recipeId,
-        ingredient.ingredientId,
-        ingredient.amount * multiplier,
-        servings,
-        now,
-      ]
-    );
+  // 이미 장바구니에 같은 레시피가 있는지 확인
+  const existingItems = await db.getAllAsync<any>(
+    'SELECT * FROM cart_items WHERE recipe_id = ?',
+    [recipeId]
+  );
+
+  if (existingItems.length > 0) {
+    // 기존 항목이 있으면 수량 업데이트
+    for (const ingredient of recipe.ingredients) {
+      const existing = existingItems.find(
+        (item) => item.ingredient_id === ingredient.ingredientId
+      );
+
+      if (existing) {
+        // 기존 수량에 추가
+        const newAmount = existing.amount + ingredient.amount * multiplier;
+        const newServings = existing.servings + servings;
+        
+        await db.runAsync(
+          'UPDATE cart_items SET amount = ?, servings = ?, added_at = ? WHERE id = ?',
+          [newAmount, newServings, now, existing.id]
+        );
+      } else {
+        // 새로운 재료 추가 (레시피가 업데이트되어 재료가 추가된 경우)
+        await db.runAsync(
+          'INSERT INTO cart_items (recipe_id, ingredient_id, amount, servings, added_at) VALUES (?, ?, ?, ?, ?)',
+          [
+            recipeId,
+            ingredient.ingredientId,
+            ingredient.amount * multiplier,
+            servings,
+            now,
+          ]
+        );
+      }
+    }
+  } else {
+    // 새로운 레시피 추가
+    for (const ingredient of recipe.ingredients) {
+      await db.runAsync(
+        'INSERT INTO cart_items (recipe_id, ingredient_id, amount, servings, added_at) VALUES (?, ?, ?, ?, ?)',
+        [
+          recipeId,
+          ingredient.ingredientId,
+          ingredient.amount * multiplier,
+          servings,
+          now,
+        ]
+      );
+    }
   }
 };
 
